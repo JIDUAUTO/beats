@@ -315,10 +315,11 @@ func (h *groupHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim s
 			return err
 		}
 		h.client.Publish(beat.Event{
-			Timestamp: message.Ts,
-			Meta:      message.Meta,
-			Fields:    message.Fields,
-			Private:   message.Private,
+			Timestamp:   message.Ts,
+			Meta:        message.Meta,
+			Fields:      message.Fields,
+			Private:     message.Private,
+			MessageSize: len(message.Content),
 		})
 	}
 	return nil

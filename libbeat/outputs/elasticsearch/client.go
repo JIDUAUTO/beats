@@ -209,7 +209,7 @@ func (client *Client) publishEvents(ctx context.Context, data []publisher.Event)
 	// events slice
 	origCount := len(data)
 	span.Context.SetLabel("events_original", origCount)
-	data, bulkItems := client.bulkEncodePublishRequest(client.conn.GetVersion(), data)
+	data, totalSize, bulkItems := client.bulkEncodePublishRequest(client.conn.GetVersion(), data)
 	newCount := len(data)
 	span.Context.SetLabel("events_encoded", newCount)
 	if st != nil && origCount > newCount {
@@ -258,6 +258,7 @@ func (client *Client) publishEvents(ctx context.Context, data []publisher.Event)
 		st.Failed(failed)
 		st.Dropped(dropped)
 		st.Duplicate(duplicates)
+		st.MessageBytes(totalSize)
 		st.ErrTooMany(stats.tooMany)
 	}
 
@@ -272,9 +273,10 @@ func (client *Client) publishEvents(ctx context.Context, data []publisher.Event)
 
 // bulkEncodePublishRequest encodes all bulk requests and returns slice of events
 // successfully added to the list of bulk items and the list of bulk items.
-func (client *Client) bulkEncodePublishRequest(version common.Version, data []publisher.Event) ([]publisher.Event, []interface{}) {
+func (client *Client) bulkEncodePublishRequest(version common.Version, data []publisher.Event) ([]publisher.Event, int, []interface{}) {
 	okEvents := data[:0]
 	bulkItems := []interface{}{}
+	var totalSize int
 	for i := range data {
 		event := &data[i].Content
 		meta, err := client.createEventBulkMeta(version, event)
@@ -289,8 +291,10 @@ func (client *Client) bulkEncodePublishRequest(version common.Version, data []pu
 			bulkItems = append(bulkItems, meta, event)
 		}
 		okEvents = append(okEvents, data[i])
+
+		totalSize += event.MessageSize
 	}
-	return okEvents, bulkItems
+	return okEvents, totalSize, bulkItems
 }
 
 func (client *Client) createEventBulkMeta(version common.Version, event *beat.Event) (interface{}, error) {

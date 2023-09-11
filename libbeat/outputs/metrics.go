@@ -28,13 +28,14 @@ type Stats struct {
 	batches *monitoring.Uint // total number of batches processed by output
 	events  *monitoring.Uint // total number of events processed by output
 
-	acked      *monitoring.Uint // total number of events ACKed by output
-	latency    *monitoring.Uint // total number of milliseconds output request
-	failed     *monitoring.Uint // total number of events failed in output
-	active     *monitoring.Uint // events sent and waiting for ACK/fail from output
-	duplicates *monitoring.Uint // events sent and waiting for ACK/fail from output
-	dropped    *monitoring.Uint // total number of invalid events dropped by the output
-	tooMany    *monitoring.Uint // total number of too many requests replies from output
+	acked        *monitoring.Uint // total number of events ACKed by output
+	latency      *monitoring.Uint // total number of milliseconds output request
+	failed       *monitoring.Uint // total number of events failed in output
+	active       *monitoring.Uint // events sent and waiting for ACK/fail from output
+	duplicates   *monitoring.Uint // events sent and waiting for ACK/fail from output
+	dropped      *monitoring.Uint // total number of invalid events dropped by the output
+	messageBytes *monitoring.Uint // total number of bytes for raw message
+	tooMany      *monitoring.Uint // total number of too many requests replies from output
 
 	//
 	// Output network connection stats
@@ -51,15 +52,16 @@ type Stats struct {
 // The registry must not be null.
 func NewStats(reg *monitoring.Registry) *Stats {
 	return &Stats{
-		batches:    monitoring.NewUint(reg, "events.batches"),
-		events:     monitoring.NewUint(reg, "events.total"),
-		acked:      monitoring.NewUint(reg, "events.acked"),
-		latency:    monitoring.NewUint(reg, "events.latency"),
-		failed:     monitoring.NewUint(reg, "events.failed"),
-		dropped:    monitoring.NewUint(reg, "events.dropped"),
-		duplicates: monitoring.NewUint(reg, "events.duplicates"),
-		active:     monitoring.NewUint(reg, "events.active"),
-		tooMany:    monitoring.NewUint(reg, "events.toomany"),
+		batches:      monitoring.NewUint(reg, "events.batches"),
+		events:       monitoring.NewUint(reg, "events.total"),
+		acked:        monitoring.NewUint(reg, "events.acked"),
+		latency:      monitoring.NewUint(reg, "events.latency"),
+		failed:       monitoring.NewUint(reg, "events.failed"),
+		dropped:      monitoring.NewUint(reg, "events.dropped"),
+		duplicates:   monitoring.NewUint(reg, "events.duplicates"),
+		active:       monitoring.NewUint(reg, "events.active"),
+		messageBytes: monitoring.NewUint(reg, "events.message.bytes"),
+		tooMany:      monitoring.NewUint(reg, "events.toomany"),
 
 		writeBytes:  monitoring.NewUint(reg, "write.bytes"),
 		writeErrors: monitoring.NewUint(reg, "write.errors"),
@@ -125,6 +127,13 @@ func (s *Stats) Dropped(n int) {
 func (s *Stats) Cancelled(n int) {
 	if s != nil {
 		s.active.Sub(uint64(n))
+	}
+}
+
+// MessageBytes updates the number of bytes for raw message.
+func (s *Stats) MessageBytes(n int) {
+	if s != nil {
+		s.messageBytes.Add(uint64(n))
 	}
 }
 

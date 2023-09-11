@@ -109,11 +109,14 @@ func (c *console) Publish(_ context.Context, batch publisher.Batch) error {
 	st.NewBatch(len(events))
 
 	dropped := 0
+	var totalSize int
 	for i := range events {
 		ok := c.publishEvent(&events[i])
 		if !ok {
 			dropped++
 		}
+
+		totalSize += events[i].Content.MessageSize
 	}
 
 	c.writer.Flush()
@@ -121,6 +124,7 @@ func (c *console) Publish(_ context.Context, batch publisher.Batch) error {
 
 	st.Dropped(dropped)
 	st.Acked(len(events) - dropped)
+	st.MessageBytes(totalSize)
 
 	return nil
 }

@@ -469,10 +469,11 @@ func (h *Harvester) onMessage(
 	}
 
 	err := forwarder.Send(beat.Event{
-		Timestamp: timestamp,
-		Fields:    fields,
-		Meta:      meta,
-		Private:   state,
+		Timestamp:   timestamp,
+		Fields:      fields,
+		Meta:        meta,
+		Private:     state,
+		MessageSize: len(message.Content),
 	})
 	return err == nil
 }

@@ -144,6 +144,7 @@ func (c *client) Publish(_ context.Context, batch publisher.Batch) error {
 		batch:  batch,
 	}
 
+	var totalSize int
 	begin := time.Now()
 	ch := c.producer.Input()
 	for i := range events {
@@ -159,8 +160,11 @@ func (c *client) Publish(_ context.Context, batch publisher.Batch) error {
 		msg.ref = ref
 		msg.initProducerMessage()
 		ch <- &msg.msg
+
+		totalSize += d.Content.MessageSize
 	}
 	c.observer.Latency(uint64(time.Since(begin).Milliseconds()))
+	c.observer.MessageBytes(totalSize)
 
 	return nil
 }

@@ -17,13 +17,13 @@
 
 package parse_common
 
-// Config for parse_parse_vehicle_trace2trace processor.
-type Config struct {
-	Field string `config:"field"` // log message field
-}
-
-func defaultConfig() Config {
-	return Config{
-		Field: "message",
+var (
+	LevelMap = map[string]string{
+		"V": "VERBOSE",
+		"D": "DEBUG",
+		"I": "INFO",
+		"W": "WARN",
+		"E": "ERROR",
+		"F": "FATAL",
 	}
-}
+)

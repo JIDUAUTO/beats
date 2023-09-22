@@ -18,16 +18,12 @@
 package parse_vehicle_trace2trace
 
 import (
-	"errors"
 	"fmt"
 )
 
-var errNoFields = errors.New("must specify at least one field")
-
 type (
-	errConfigUnpack       struct{ cause error }
-	errComputeFingerprint struct{ cause error }
-	errMissingField       struct {
+	errConfigUnpack struct{ cause error }
+	errMissingField struct {
 		field string
 		cause error
 	}
@@ -46,13 +42,6 @@ func makeErrConfigUnpack(cause error) errConfigUnpack {
 }
 func (e errConfigUnpack) Error() string {
 	return fmt.Sprintf("failed to unpack %v processor configuration: %v", procName, e.cause)
-}
-
-func makeErrComputeFingerprint(cause error) errComputeFingerprint {
-	return errComputeFingerprint{cause}
-}
-func (e errComputeFingerprint) Error() string {
-	return fmt.Sprintf("failed to compute fingerprint: %v", e.cause)
 }
 
 func makeErrMissingField(field string, cause error) errMissingField {

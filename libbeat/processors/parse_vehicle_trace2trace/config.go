@@ -22,7 +22,6 @@ type Config struct {
 	Field           string `config:"field"`            // log message field
 	IgnoreMissing   bool   `config:"ignore_missing"`   // Skip field when From field is missing.
 	IgnoreMalformed bool   `config:"ignore_malformed"` // Skip log when From log is incorrect.
-	DropOrigin      bool   `config:"drop_origin"`      // Drop the origin field
 }
 
 func defaultConfig() Config {
@@ -30,6 +29,5 @@ func defaultConfig() Config {
 		Field:           "message",
 		IgnoreMissing:   true,
 		IgnoreMalformed: true,
-		DropOrigin:      true,
 	}
 }

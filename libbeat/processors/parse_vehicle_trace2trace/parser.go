@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/goccy/go-json"
+	"github.com/thinkeridea/go-extend/exstrings"
 
 	"github.com/elastic/beats/v7/libbeat/beat"
 	"github.com/elastic/beats/v7/libbeat/common"
@@ -57,23 +58,18 @@ func NewParseVehicleTrace2trace(cfg *common.Config) (processors.Processor, error
 
 	logger := logp.NewLogger(logName)
 
-	pattern, err := regexp.Compile(patternStr)
-	if err != nil {
-		return nil, err
-	}
 	p := &parseVehicleTrace2trace{
 		config:  config,
 		logger:  logger,
-		pattern: pattern,
+		pattern: regexp.MustCompile(patternStr),
 	}
 
 	return p, nil
 }
 
-// todo  拆成多个processor
-// Run parse log
+// Run processing parser
 func (p *parseVehicleTrace2trace) Run(event *beat.Event) (*beat.Event, error) {
-	//get the content of log
+	// get the content of log
 	message, err := event.GetValue(p.config.Field)
 	if err != nil {
 		if p.config.IgnoreMissing {
@@ -83,34 +79,18 @@ func (p *parseVehicleTrace2trace) Run(event *beat.Event) (*beat.Event, error) {
 	}
 
 	var msgObj common.MapStr
-	err = json.Unmarshal([]byte(message.(string)), &msgObj)
-	if err != nil {
-		return nil, err
-	}
-	msg, err := msgObj.GetValue("message")
+	err = json.Unmarshal(exstrings.UnsafeToBytes(message.(string)), &msgObj)
 	if err != nil {
 		return nil, err
 	}
 
 	path, err := msgObj.GetValue("log.file.path")
 	if err != nil {
-		if p.config.IgnoreMissing {
-			return event, nil
-		}
 		return nil, makeErrMissingField("log.file.path", err)
-	}
-
-	//drop origin field
-	if p.config.DropOrigin {
-		err := event.Delete(p.config.Field)
-		if err != nil {
-			p.logger.Warnf("drop event field err: %v", err)
-		}
 	}
 
 	/* parse */
 	items := strings.Split(path.(string), "@")
-
 	if len(items) == 6 {
 		event.Fields["x-header_filename"] = items[0][strings.LastIndex(items[0], "/")+1 : strings.LastIndex(items[0], ".")]
 		event.Fields["x-header_ecu"] = items[1]
@@ -119,40 +99,40 @@ func (p *parseVehicleTrace2trace) Run(event *beat.Event) (*beat.Event, error) {
 		event.Fields["x-header_created_at"] = items[4]
 		event.Fields["x-header_uploaded_at"] = items[5]
 	}
+
+	msg, err := msgObj.GetValue("message")
+	if err != nil {
+		return nil, err
+	}
 	msgStr := msg.(string)
-
+	// override
 	event.Fields["message"] = msgStr
-	lists := p.pattern.FindStringSubmatch(msgStr)
+	matches := p.pattern.FindStringSubmatch(msgStr)
+	if len(matches) < 11 || len(matches[6]) <= 0 {
+		// Drop event
+		return nil, nil
+	}
 
-	if len(lists) >= 11 && len(lists[6]) > 0 {
-		event.Fields["time"] = lists[1]
-		pid, err := strconv.ParseInt(lists[2], 10, 64)
-		if err != nil {
-			pid = 0
-		}
-
-		event.Fields["pid"] = pid
-		tid, err := strconv.ParseInt(lists[3], 10, 64)
-		if err != nil {
-			tid = 0
-		}
-		event.Fields["tid"] = tid
-		if value, ok := parse_common.LevelMap[lists[4]]; ok {
-			event.Fields["level"] = value
-		} else {
-			event.Fields["level"] = lists[4]
-		}
-		event.Fields["tag"] = lists[5]
-		event.Fields["trace_id"] = lists[6]
-		event.Fields["span_id"] = lists[7]
-		event.Fields["parent_span_id"] = lists[8]
-		event.Fields["network"] = lists[9]
-		event.Fields["user_id"] = lists[10]
-		if endIdx := strings.LastIndex(msgStr, "##MSG##"); endIdx > len(lists[0]) {
-			event.Fields["message"] = msgStr[len(lists[0]):endIdx]
-		} else {
-			event.Fields["message"] = msgStr[len(lists[0]):]
-		}
+	event.Fields["time"] = matches[1]
+	pid, _ := strconv.ParseInt(matches[2], 10, 64)
+	event.Fields["pid"] = pid
+	tid, _ := strconv.ParseInt(matches[3], 10, 64)
+	event.Fields["tid"] = tid
+	if value, ok := parse_common.LevelMap[matches[4]]; ok {
+		event.Fields["level"] = value
+	} else {
+		event.Fields["level"] = strings.ToUpper(matches[4])
+	}
+	event.Fields["tag"] = matches[5]
+	event.Fields["trace_id"] = matches[6]
+	event.Fields["span_id"] = matches[7]
+	event.Fields["parent_span_id"] = matches[8]
+	event.Fields["network"] = matches[9]
+	event.Fields["user_id"] = matches[10]
+	if endIdx := strings.LastIndex(msgStr, "##MSG##"); endIdx > len(matches[0]) {
+		event.Fields["message"] = msgStr[len(matches[0]):endIdx]
+	} else {
+		event.Fields["message"] = msgStr[len(matches[0]):]
 	}
 
 	return event, nil

@@ -18,15 +18,17 @@
 package parse_vehicle_trace2trace
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
 	"github.com/elastic/beats/v7/libbeat/beat"
 	"github.com/elastic/beats/v7/libbeat/common"
 	"github.com/elastic/beats/v7/libbeat/logp"
-	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 var (
-	defaultMessage = " {\"@timestamp\":\"2023-08-26T04:13:30.649Z\",\"@metadata\":{\"beat\":\"filebeat\",\"type\":\"_doc\",\"version\":\"7.9.3\"},\"log\":{\"offset\":126404,\"file\":{\"path\":\"/vlog/cdc/20230826120955_763.log.gz.1695288295082205184@cdc@b974519299bfa3e1faf92e611331aa08@tracelog@1693023196000@1693023204332\"},\"flags\":[\"multiline\"]},\"message\":\"2023-08-26 12:11:47.898 4664 24435 DEBUG com.jidu.media.service:MediaService@MediaService@HttpLogInterceptor:##MSG## [6d3e1573c45f07a1c60c6be4aeb3d2a0] [789f9212a72f683f] [] [5g] [441018276115528658] response url: https://vehiclesvc.jiduapp.cn/api/cpsp/xmly/history/record/album, Response Time-->：2023-08-26 12:11:47 897\\nTraceParent-->：00-6d3e1573c45f07a1c60c6be4aeb3d2a0-789f9212a72f683f-01\\nResponse Result  -->：{\\\"code\\\":0,\\\"msg\\\":\\\"Success\\\",\\\"showMsg\\\":\\\"\\\"} ##MSG##\",\"fields\":{\"servicetype\":\"tracelogcdc\"}}"
+	defaultMessage = "{\"@timestamp\":\"2023-08-26T04:13:30.649Z\",\"@metadata\":{\"beat\":\"filebeat\",\"type\":\"_doc\",\"version\":\"7.9.3\"},\"log\":{\"offset\":126404,\"file\":{\"path\":\"/vlog/cdc/20230826120955_763.log.gz.1695288295082205184@cdc@b974519299bfa3e1faf92e611331aa08@tracelog@1693023196000@1693023204332\"},\"flags\":[\"multiline\"]},\"message\":\"2023-08-26 12:11:47.898 4664 24435 DEBUG com.jidu.media.service:MediaService@MediaService@HttpLogInterceptor:##MSG## [6d3e1573c45f07a1c60c6be4aeb3d2a0] [789f9212a72f683f] [] [5g] [441018276115528658] response url: https://vehiclesvc.jiduapp.cn/api/cpsp/xmly/history/record/album, Response Time-->：2023-08-26 12:11:47 897\\nTraceParent-->：00-6d3e1573c45f07a1c60c6be4aeb3d2a0-789f9212a72f683f-01\\nResponse Result  -->：{\\\"code\\\":0,\\\"msg\\\":\\\"Success\\\",\\\"showMsg\\\":\\\"\\\"} ##MSG##\",\"fields\":{\"servicetype\":\"tracelogcdc\"}}"
 )
 
 func TestWithConfig(t *testing.T) {
@@ -60,7 +62,7 @@ func TestWithConfig(t *testing.T) {
 		"user_id":            "441018276115528658",
 		"message":            "response url: https://vehiclesvc.jiduapp.cn/api/cpsp/xmly/history/record/album, Response Time-->：2023-08-26 12:11:47 897\nTraceParent-->：00-6d3e1573c45f07a1c60c6be4aeb3d2a0-789f9212a72f683f-01\nResponse Result  -->：{\"code\":0,\"msg\":\"Success\",\"showMsg\":\"\"} ",
 	}
-	//assert.Equal(t, expected.String(), actual.String())
+	// assert.Equal(t, expected.String(), actual.String())
 	assert.Equal(t, expected["header_filename"], actual["x-header_filename"])
 	assert.Equal(t, expected["header_ecu"], actual["x-header_ecu"])
 	assert.Equal(t, expected["header_vid"], actual["x-header_vid"])
@@ -78,7 +80,6 @@ func TestWithConfig(t *testing.T) {
 	assert.Equal(t, expected["network"], actual["network"])
 	assert.Equal(t, expected["user_id"], actual["user_id"])
 	assert.Equal(t, expected["message"], actual["message"])
-
 }
 
 func getActualValue(t *testing.T, config *common.Config, input common.MapStr) common.MapStr {

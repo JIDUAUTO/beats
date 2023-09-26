@@ -137,7 +137,7 @@ func (p *parseServerlog) Run(event *beat.Event) (*beat.Event, error) {
 
 	// 含有json数据
 	endIdx = strings.LastIndex(msg, util.MsgTag)
-	if beginIdx+len(util.MsgTag) != endIdx {
+	if beginIdx > 0 && beginIdx+len(util.MsgTag) != endIdx {
 		var obj map[string]interface{}
 		err = json.Unmarshal(exstrings.UnsafeToBytes(msg[beginIdx+len(util.MsgTag):endIdx]), &obj)
 		if err != nil {

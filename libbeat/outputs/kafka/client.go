@@ -149,10 +149,6 @@ func (c *client) Publish(_ context.Context, batch publisher.Batch) error {
 	ch := c.producer.Input()
 	for i := range events {
 		d := &events[i]
-		// remove internal fields before send to the output
-		d.Content.Delete("contents")
-		d.Content.Delete("fields")
-
 		msg, err := c.getEventMessage(d)
 		if err != nil {
 			c.log.Errorf("Dropping event: %+v", err)
@@ -214,6 +210,10 @@ func (c *client) getEventMessage(data *publisher.Event) (*message, error) {
 			return nil, fmt.Errorf("setting kafka topic in publisher event failed: %v", err)
 		}
 	}
+
+	// remove internal fields before send to the output
+	delete(event.Fields, "contents")
+	delete(event.Fields, "fields")
 
 	serializedEvent, err := c.codec.Encode(c.index, event)
 	if err != nil {

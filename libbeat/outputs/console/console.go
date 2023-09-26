@@ -112,8 +112,8 @@ func (c *console) Publish(_ context.Context, batch publisher.Batch) error {
 	var totalSize int
 	for i := range events {
 		// remove internal fields before send to the output
-		events[i].Content.Delete("contents")
-		events[i].Content.Delete("fields")
+		delete(events[i].Content.Fields, "contents")
+		delete(events[i].Content.Fields, "fields")
 
 		ok := c.publishEvent(&events[i])
 		if !ok {

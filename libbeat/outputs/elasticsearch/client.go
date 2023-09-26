@@ -279,10 +279,6 @@ func (client *Client) bulkEncodePublishRequest(version common.Version, data []pu
 	var totalSize int
 	for i := range data {
 		event := &data[i].Content
-		// remove internal fields before send to the output
-		event.Delete("contents")
-		event.Delete("fields")
-
 		meta, err := client.createEventBulkMeta(version, event)
 		if err != nil {
 			client.log.Errorf("Failed to encode event meta data: %+v", err)
@@ -297,6 +293,11 @@ func (client *Client) bulkEncodePublishRequest(version common.Version, data []pu
 		okEvents = append(okEvents, data[i])
 
 		totalSize += event.MessageSize
+
+		// remove internal fields before send to the output
+		// code position must after calling createEventBulkMeta<using fields to the index sector>
+		delete(event.Fields, "contents")
+		delete(event.Fields, "fields")
 	}
 	return okEvents, totalSize, bulkItems
 }

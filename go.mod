@@ -64,6 +64,8 @@ require (
 	github.com/eclipse/paho.mqtt.golang v1.2.1-0.20200121105743-0d940dd29fd2
 	github.com/elastic/ecs v1.12.0
 	github.com/elastic/elastic-agent-client/v7 v7.0.0-20210727140539-f0905d9377f6
+	github.com/elastic/elastic-agent-libs v0.2.11
+	github.com/elastic/elastic-agent-system-metrics v0.4.4
 	github.com/elastic/go-concert v0.2.0
 	github.com/elastic/go-libaudit/v2 v2.3.1
 	github.com/elastic/go-licenser v0.4.0
@@ -85,6 +87,7 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/go-test/deep v1.0.7
 	github.com/gocarina/gocsv v0.0.0-20170324095351-ffef3ffc77be
+	github.com/goccy/go-json v0.10.2
 	github.com/godbus/dbus v0.0.0-20190422162347-ade71ed3457e
 	github.com/godror/godror v0.10.4
 	github.com/gofrs/flock v0.7.2-0.20190320160742-5135e617513b
@@ -149,6 +152,7 @@ require (
 	github.com/spf13/cobra v1.3.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
+	github.com/thinkeridea/go-extend v1.3.2
 	github.com/tsg/go-daemon v0.0.0-20200207173439-e704b93fd89b
 	github.com/tsg/gopacket v0.0.0-20200626092518-2ab8e397a786
 	github.com/ugorji/go/codec v1.1.8
@@ -193,13 +197,6 @@ require (
 	k8s.io/apimachinery v0.21.1
 	k8s.io/client-go v0.21.1
 	kernel.org/pub/linux/libs/security/libcap/cap v1.2.57
-)
-
-require (
-	github.com/elastic/elastic-agent-libs v0.2.11
-	github.com/elastic/elastic-agent-system-metrics v0.4.4
-	github.com/goccy/go-json v0.10.2
-	github.com/thinkeridea/go-extend v1.3.2
 )
 
 require (

@@ -98,7 +98,7 @@ func (p *parseVehicleTrace2trace) Run(event *beat.Event) (*beat.Event, error) {
 	// override
 	event.Fields["message"] = msg
 	matches := p.pattern.FindStringSubmatch(msg)
-	if len(matches) < 11 {
+	if len(matches) < 11 || len(matches[6]) < 0 {
 		// Drop event
 		return nil, nil
 	}

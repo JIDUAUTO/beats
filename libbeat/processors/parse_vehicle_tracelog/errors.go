@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package parse_vehicle_trace2trace
+package parse_vehicle_tracelog
 
 import (
 	"fmt"
@@ -23,6 +23,7 @@ import (
 
 type (
 	errConfigUnpack struct{ cause error }
+	errCompute      struct{ cause error }
 	errMissingField struct {
 		field string
 		cause error
@@ -42,6 +43,13 @@ func makeErrConfigUnpack(cause error) errConfigUnpack {
 }
 func (e errConfigUnpack) Error() string {
 	return fmt.Sprintf("failed to unpack %v processor configuration: %v", procName, e.cause)
+}
+
+func makeErrCompute(cause error) errCompute {
+	return errCompute{cause}
+}
+func (e errCompute) Error() string {
+	return fmt.Sprintf("failed to compute fingerprint: %v", e.cause)
 }
 
 func makeErrMissingField(field string, cause error) errMissingField {

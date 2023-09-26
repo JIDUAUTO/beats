@@ -111,6 +111,10 @@ func (c *console) Publish(_ context.Context, batch publisher.Batch) error {
 	dropped := 0
 	var totalSize int
 	for i := range events {
+		// remove internal fields before send to the output
+		events[i].Content.Delete("contents")
+		events[i].Content.Delete("fields")
+
 		ok := c.publishEvent(&events[i])
 		if !ok {
 			dropped++

@@ -279,6 +279,10 @@ func (client *Client) bulkEncodePublishRequest(version common.Version, data []pu
 	var totalSize int
 	for i := range data {
 		event := &data[i].Content
+		// remove internal fields before send to the output
+		event.Delete("contents")
+		event.Delete("fields")
+
 		meta, err := client.createEventBulkMeta(version, event)
 		if err != nil {
 			client.log.Errorf("Failed to encode event meta data: %+v", err)

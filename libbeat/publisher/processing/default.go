@@ -76,7 +76,9 @@ type builtinModifier func(beat.Info) common.MapStr
 // MakeDefaultBeatSupport automatically adds the `ecs.version`, `host.name` and `agent.X` fields
 // to each event.
 func MakeDefaultBeatSupport(normalize bool) SupportFactory {
-	return MakeDefaultSupport(normalize, WithECS, WithHost, WithAgentMeta())
+	// return MakeDefaultSupport(normalize, WithECS, WithHost, WithAgentMeta())
+	// do not auto insert fields: ecs、host、agent
+	return MakeDefaultSupport(normalize)
 }
 
 // MakeDefaultObserverSupport creates a new SupportFactory based on NewDefaultSupport.

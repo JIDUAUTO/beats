@@ -18,26 +18,24 @@
 package parse_serverlog
 
 import (
-	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/pkg/errors"
+	"github.com/thinkeridea/go-extend/exstrings"
 
 	"github.com/elastic/beats/v7/libbeat/beat"
 	"github.com/elastic/beats/v7/libbeat/common"
 	"github.com/elastic/beats/v7/libbeat/logp"
 	"github.com/elastic/beats/v7/libbeat/processors"
+	"github.com/elastic/beats/v7/libbeat/processors/util"
 )
 
 const (
 	procName = "parse_serverlog"
 	logName  = "processor." + procName
-)
-
-var (
-	jiduservicenamePattern  = regexp.MustCompile(`^[a-z]+[a-z0-9\-\_\.]+$`)
-	benchmarkTraceIdPattern = regexp.MustCompile(`^00000000[1-9a-f]`)
 )
 
 func init() {
@@ -69,94 +67,89 @@ func NewParseServerlog(cfg *common.Config) (processors.Processor, error) {
 
 // Run parse log
 func (p *parseServerlog) Run(event *beat.Event) (*beat.Event, error) {
-	//get the content of log
+	// event filter
+	processor, err := event.GetValue(processors.FieldProcessor)
+	if err != nil {
+		return event, nil
+	}
+	if processor != procName {
+		return event, nil
+	}
+
 	message, err := event.GetValue(p.config.Field)
 	if err != nil {
-		if p.config.IgnoreMissing {
+		if p.config.IgnoreMissing && errors.Cause(err) == common.ErrKeyNotFound {
 			return event, nil
 		}
 		return nil, makeErrMissingField(p.config.Field, err)
 	}
+	msg := message.(string)
 
-	var msgObj common.MapStr
-	err = json.Unmarshal([]byte(message.(string)), &msgObj)
-	if err != nil {
-		return nil, err
-	}
+	// Parse time field
+	for _, layout := range p.config.Layouts {
+		ts, err := time.ParseInLocation(layout, msg[0:23], p.config.Timezone.Location())
+		if err == nil {
+			_, err = event.PutValue(p.config.TimeField, ts)
+			if err != nil {
+				return nil, makeErrCompute(err)
+			}
 
-	msg, err := msgObj.GetValue("contents.content")
-	if err != nil {
-		if p.config.IgnoreMissing {
-			return event, nil
+			break
 		}
-		return nil, makeErrMissingField("contents.content", err)
-	}
-	event.Fields["source_tags"] = msgObj["tags"]
-	event.Fields["source_time"] = msgObj["time"]
-
-	msgStr := msg.(string)
-	event.Fields[p.config.TimeField] = msgStr[0:23]
-
-	items := strings.SplitN(msgStr, " ", 12)
-	if len(items) < 11 {
-		return event, nil
 	}
 
-	jiduservicename := strings.Replace(items[2], ",", "", 1)
-	if !jiduservicenamePattern.MatchString(jiduservicename) {
-		return nil, err
-	}
-	event.Fields["jiduservicename"] = jiduservicename
-
-	//filter benchmark log
-	if items[9] != "" && benchmarkTraceIdPattern.MatchString(p.trim(items[9])) {
-		return event, nil
+	items := strings.SplitN(msg, " ", 12)
+	if len(items) < 12 {
+		// Drop event<malformed log>
+		return nil, nil
 	}
 
-	line, err := strconv.ParseInt(p.trim(items[8]), 10, 64)
-	idx := strings.Index(msgStr, "##JIDU##")
-	if err != nil {
-		event.Fields["script_error"] = err
-	} else {
+	event.Fields["jiduservicename"] = items[2]
+
+	// filter benchmark log
+	if strings.HasPrefix(util.Trim(items[9]), util.BenchmarkPrefix) {
+		// Drop event<benchmark log>
+		return nil, nil
+	}
+
+	var beginIdx, endIdx int
+	line, err := strconv.ParseInt(util.Trim(items[8]), 10, 64)
+	if err == nil {
 		event.Fields["hostname"] = items[3]
-		if len(items[4]) > 0 {
-			event.Fields["level"] = strings.ToUpper(items[4])
-		} else {
-			event.Fields["level"] = ""
-		}
-		event.Fields["thread"] = p.trim(items[5])
+		event.Fields["level"] = strings.ToUpper(items[4])
+		event.Fields["thread"] = util.Trim(items[5])
 		event.Fields["class"] = items[6]
 		event.Fields["method"] = items[7]
 		event.Fields["line"] = line
-		event.Fields["trace_id"] = p.trim(items[9])
-		event.Fields["span_id"] = p.trim(items[10])
-		if idx >= 0 {
-			event.Fields["message"] = msgStr[idx:]
+		event.Fields["trace_id"] = util.Trim(items[9])
+		event.Fields["span_id"] = util.Trim(items[10])
+
+		if idx := strings.Index(msg, util.MsgTagConcatenated); idx > 0 {
+			beginIdx = idx
+			event.Fields["message"] = msg[idx+len(util.MsgTagConcatenated):]
+		} else if idx = strings.Index(msg, util.MsgTag); idx > 0 {
+			beginIdx = idx
+			event.Fields["message"] = msg[idx+len(util.MsgTag):]
+		} else {
+			event.Fields["message"] = items[11]
 		}
 	}
 
-	idx2 := strings.LastIndex(msgStr, "##JIDU##")
-	if idx != -1 && idx != idx2 {
-		data := msgStr[idx+8 : idx2]
+	// 含有json数据
+	endIdx = strings.LastIndex(msg, util.MsgTag)
+	if beginIdx+len(util.MsgTag) != endIdx {
 		var obj map[string]interface{}
-		err = json.Unmarshal([]byte(data), &obj)
+		err = json.Unmarshal(exstrings.UnsafeToBytes(msg[beginIdx+len(util.MsgTag):endIdx]), &obj)
 		if err != nil {
 			event.Fields["json_error"] = err
 		} else {
-			for s, i := range obj {
-				event.Fields[s] = i
+			for k, v := range obj {
+				event.Fields[k] = v
 			}
 		}
 	}
 
 	return event, nil
-}
-
-func (p *parseServerlog) trim(s string) string {
-	if s == "" || len(s) < 2 {
-		return s
-	}
-	return s[1 : len(s)-1]
 }
 
 func (p *parseServerlog) String() string {

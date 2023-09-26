@@ -19,10 +19,10 @@ package actions
 
 import (
 	"fmt"
-	"github.com/goccy/go-json"
 	"io"
 	"strings"
 
+	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
 
 	"github.com/elastic/beats/v7/libbeat/beat"

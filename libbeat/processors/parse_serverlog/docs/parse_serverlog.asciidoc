@@ -27,14 +27,14 @@ processors:
   - drop_fields:
       fields: ["time", "input", "tags"]
       ignore_missing: true
-  - parse_filebeat_log:
+  - parse_serverlog:
       field: "contents.content"
       ignore_missing: true
       ignore_malformed: true
       time_field: "@timestamp"
       timezone: 'Asia/Shanghai'
       layouts:
-        - '2006-01-02T15:04:05.000+0800'
+        - '2006-01-02 15:04:05.000'
 -----------------------------------------------------
 
 The following settings are supported:

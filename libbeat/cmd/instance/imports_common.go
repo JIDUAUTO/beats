@@ -38,7 +38,7 @@ import (
 	_ "github.com/elastic/beats/v7/libbeat/processors/fingerprint"
 	_ "github.com/elastic/beats/v7/libbeat/processors/parse_filebeat_log"
 	_ "github.com/elastic/beats/v7/libbeat/processors/parse_serverlog"
-	_ "github.com/elastic/beats/v7/libbeat/processors/parse_vehicle_trace2trace"
+	_ "github.com/elastic/beats/v7/libbeat/processors/parse_vehicle_tracelog"
 	_ "github.com/elastic/beats/v7/libbeat/processors/ratelimit"
 	_ "github.com/elastic/beats/v7/libbeat/processors/registered_domain"
 	_ "github.com/elastic/beats/v7/libbeat/processors/translate_sid"

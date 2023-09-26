@@ -30,6 +30,10 @@ import (
 
 const logName = "processors"
 
+const (
+	FieldProcessor = "fields.handler"
+)
+
 // Processors is
 type Processors struct {
 	List []Processor

@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package parse_vehicle_trace2trace
+package parse_vehicle_tracelog
 
 import (
 	"testing"
@@ -37,7 +37,7 @@ func TestWithConfig(t *testing.T) {
 	}
 	testConfig, _ := common.NewConfigFrom(map[string]interface{}{
 		"Field":           "message",
-		"TimeField":       "logtime",
+		"TimeField":       "@timestamp",
 		"IgnoreMissing":   true,
 		"IgnoreMalformed": true,
 		"DropOrigin":      true,
@@ -62,7 +62,7 @@ func TestWithConfig(t *testing.T) {
 		"user_id":            "441018276115528658",
 		"message":            "response url: https://vehiclesvc.jiduapp.cn/api/cpsp/xmly/history/record/album, Response Time-->：2023-08-26 12:11:47 897\nTraceParent-->：00-6d3e1573c45f07a1c60c6be4aeb3d2a0-789f9212a72f683f-01\nResponse Result  -->：{\"code\":0,\"msg\":\"Success\",\"showMsg\":\"\"} ",
 	}
-	// assert.Equal(t, expected.String(), actual.String())
+
 	assert.Equal(t, expected["header_filename"], actual["x-header_filename"])
 	assert.Equal(t, expected["header_ecu"], actual["x-header_ecu"])
 	assert.Equal(t, expected["header_vid"], actual["x-header_vid"])

@@ -25,9 +25,9 @@ import (
 var errNoFields = errors.New("must specify at least one field")
 
 type (
-	errConfigUnpack       struct{ cause error }
-	errComputeFingerprint struct{ cause error }
-	errMissingField       struct {
+	errConfigUnpack struct{ cause error }
+	errCompute      struct{ cause error }
+	errMissingField struct {
 		field string
 		cause error
 	}
@@ -48,10 +48,10 @@ func (e errConfigUnpack) Error() string {
 	return fmt.Sprintf("failed to unpack %v processor configuration: %v", procName, e.cause)
 }
 
-func makeErrComputeFingerprint(cause error) errComputeFingerprint {
-	return errComputeFingerprint{cause}
+func makeErrCompute(cause error) errCompute {
+	return errCompute{cause}
 }
-func (e errComputeFingerprint) Error() string {
+func (e errCompute) Error() string {
 	return fmt.Sprintf("failed to compute fingerprint: %v", e.cause)
 }
 

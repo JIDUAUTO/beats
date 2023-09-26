@@ -19,8 +19,11 @@ package parse_filebeat_log
 
 import (
 	"fmt"
-	"github.com/goccy/go-json"
 	"strings"
+	"time"
+
+	"github.com/goccy/go-json"
+	"github.com/pkg/errors"
 
 	"github.com/elastic/beats/v7/libbeat/beat"
 	"github.com/elastic/beats/v7/libbeat/common"
@@ -62,22 +65,23 @@ func New(cfg *common.Config) (processors.Processor, error) {
 
 // Run parse filebeat's log
 func (p *parseFilebeatLog) Run(event *beat.Event) (*beat.Event, error) {
-	//get the content of log
+	// event filter
+	processor, err := event.GetValue(processors.FieldProcessor)
+	if err != nil {
+		return event, nil
+	}
+	if processor != procName {
+		return event, nil
+	}
+
+	// get the content of log
 	msg, err := event.GetValue(p.config.Field)
 	if err != nil {
-		if p.config.IgnoreMissing {
+		if p.config.IgnoreMissing && errors.Cause(err) == common.ErrKeyNotFound {
 			return event, nil
 		}
 
 		return nil, makeErrMissingField(p.config.Field, err)
-	}
-
-	//drop origin field
-	if p.config.DropOrigin {
-		err := event.Delete(p.config.Field)
-		if err != nil {
-			p.logger.Warnf("drop event field err: %v", err)
-		}
 	}
 
 	message, ok := msg.(string)
@@ -85,8 +89,9 @@ func (p *parseFilebeatLog) Run(event *beat.Event) (*beat.Event, error) {
 		return nil, makeErrFieldType(p.config.Field, "string", fmt.Sprintf("%T", msg))
 	}
 
+	// Parse log message
 	terms := strings.SplitN(message, "\t", 4)
-	//Drop logs with incorrect format
+	// Drop logs with incorrect format
 	if len(terms) != 4 {
 		if p.config.IgnoreMalformed {
 			return event, nil
@@ -94,26 +99,24 @@ func (p *parseFilebeatLog) Run(event *beat.Event) (*beat.Event, error) {
 
 		return nil, makeErrLogFormat("[datetime]\t[LEVEL]\t[hostname]\t[message]")
 	}
-	_, err = event.PutValue(p.config.TimeField, terms[0])
-	if err != nil {
-		return nil, makeErrComputeFingerprint(err)
+
+	// Parse log time
+	for _, layout := range p.config.Layouts {
+		ts, err := time.ParseInLocation(layout, terms[0], p.config.Timezone.Location())
+		if err == nil {
+			_, err = event.PutValue(p.config.TimeField, ts.UTC())
+			if err != nil {
+				return nil, makeErrCompute(err)
+			}
+
+			break
+		}
 	}
 
-	_, err = event.PutValue("level", strings.ToUpper(terms[1]))
-	if err != nil {
-		return nil, makeErrComputeFingerprint(err)
-	}
-
-	_, err = event.PutValue("hostname", terms[2])
-	if err != nil {
-		return nil, makeErrComputeFingerprint(err)
-	}
-
-	// replace message field
-	_, err = event.PutValue("message", terms[3])
-	if err != nil {
-		return nil, makeErrComputeFingerprint(err)
-	}
+	// Padding fields
+	event.Fields["level"] = strings.ToUpper(terms[1])
+	event.Fields["hostname"] = terms[2]
+	event.Fields["message"] = terms[3]
 
 	return event, nil
 }

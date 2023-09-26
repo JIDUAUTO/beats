@@ -17,17 +17,24 @@
 
 package parse_serverlog
 
+import (
+	"github.com/elastic/beats/v7/libbeat/common/cfgtype"
+)
+
 // Config for parse_parse_vehicle_trace2trace processor.
 type Config struct {
-	Field         string `config:"field"`          // log message field
-	TimeField     string `config:"time_field"`     // specified the time field
-	IgnoreMissing bool   `config:"ignore_missing"` // Skip field when From field is missing.
+	Field         string            `config:"field"`          // log message field
+	IgnoreMissing bool              `config:"ignore_missing"` // Skip field when From field is missing.
+	TimeField     string            `config:"time_field"`     // specified the time field
+	Timezone      *cfgtype.Timezone `config:"timezone"`
+	Layouts       []string          `configs:"layouts" validate:"required"`
 }
 
 func defaultConfig() Config {
 	return Config{
 		Field:         "message",
-		TimeField:     "logtime",
-		IgnoreMissing: true,
+		TimeField:     "@timestamp",
+		IgnoreMissing: false,
+		Timezone:      cfgtype.MustNewTimezone("Asia/Shanghai"),
 	}
 }

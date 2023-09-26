@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package parse_vehicle_trace2trace
+package parse_vehicle_tracelog
 
 // Config for parse_parse_vehicle_trace2trace processor.
 type Config struct {
@@ -27,7 +27,7 @@ type Config struct {
 func defaultConfig() Config {
 	return Config{
 		Field:           "message",
-		IgnoreMissing:   true,
+		IgnoreMissing:   false,
 		IgnoreMalformed: true,
 	}
 }

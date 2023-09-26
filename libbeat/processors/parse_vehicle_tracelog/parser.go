@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package parse_vehicle_trace2trace
+package parse_vehicle_tracelog
 
 import (
 	"regexp"
@@ -23,23 +23,23 @@ import (
 	"strings"
 
 	"github.com/goccy/go-json"
-	"github.com/thinkeridea/go-extend/exstrings"
+	"github.com/pkg/errors"
 
 	"github.com/elastic/beats/v7/libbeat/beat"
 	"github.com/elastic/beats/v7/libbeat/common"
 	"github.com/elastic/beats/v7/libbeat/logp"
 	"github.com/elastic/beats/v7/libbeat/processors"
-	"github.com/elastic/beats/v7/libbeat/processors/parse_common"
+	"github.com/elastic/beats/v7/libbeat/processors/util"
 )
 
 const (
-	procName   = "parse_vehicle_trace2trace"
+	procName   = "parse_vehicle_tracelog"
 	logName    = "processor." + procName
 	patternStr = "^(\\d{4}\\-\\d{2}\\-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}\\.\\d{3})\\s+(\\d+)\\s+(\\d+)\\s+([a-zA-Z]+)\\s+(.*):\\s*##MSG##\\s*\\[(\\w*)\\]\\s*\\[(\\w*)\\]\\s*\\[(\\w*)\\]\\s*\\[([^\\[\\]]*)\\]\\s*\\[([^\\[\\]]*)\\]\\s+"
 )
 
 func init() {
-	processors.RegisterPlugin(procName, NewParseVehicleTrace2trace)
+	processors.RegisterPlugin(procName, NewParseVehicleTracelog)
 	// jsprocessor.RegisterPlugin(strings.Title(procName), New)
 }
 
@@ -50,7 +50,7 @@ type parseVehicleTrace2trace struct {
 }
 
 // NewParseVehicleTrace2trace constructs a new parse_vehicle_trace2trace processor.
-func NewParseVehicleTrace2trace(cfg *common.Config) (processors.Processor, error) {
+func NewParseVehicleTracelog(cfg *common.Config) (processors.Processor, error) {
 	config := defaultConfig()
 	if err := cfg.Unpack(&config); err != nil {
 		return nil, makeErrConfigUnpack(err)
@@ -72,19 +72,13 @@ func (p *parseVehicleTrace2trace) Run(event *beat.Event) (*beat.Event, error) {
 	// get the content of log
 	message, err := event.GetValue(p.config.Field)
 	if err != nil {
-		if p.config.IgnoreMissing {
+		if p.config.IgnoreMissing && errors.Cause(err) == common.ErrKeyNotFound {
 			return event, nil
 		}
 		return nil, makeErrMissingField(p.config.Field, err)
 	}
 
-	var msgObj common.MapStr
-	err = json.Unmarshal(exstrings.UnsafeToBytes(message.(string)), &msgObj)
-	if err != nil {
-		return nil, err
-	}
-
-	path, err := msgObj.GetValue("log.file.path")
+	path, err := event.GetValue("log.file.path")
 	if err != nil {
 		return nil, makeErrMissingField("log.file.path", err)
 	}
@@ -100,39 +94,38 @@ func (p *parseVehicleTrace2trace) Run(event *beat.Event) (*beat.Event, error) {
 		event.Fields["x-header_uploaded_at"] = items[5]
 	}
 
-	msg, err := msgObj.GetValue("message")
-	if err != nil {
-		return nil, err
-	}
-	msgStr := msg.(string)
+	msg := message.(string)
 	// override
-	event.Fields["message"] = msgStr
-	matches := p.pattern.FindStringSubmatch(msgStr)
-	if len(matches) < 11 || len(matches[6]) <= 0 {
+	event.Fields["message"] = msg
+	matches := p.pattern.FindStringSubmatch(msg)
+	if len(matches) < 11 {
 		// Drop event
 		return nil, nil
 	}
 
+	// the time field is served for trace collector
 	event.Fields["time"] = matches[1]
+
 	pid, _ := strconv.ParseInt(matches[2], 10, 64)
 	event.Fields["pid"] = pid
 	tid, _ := strconv.ParseInt(matches[3], 10, 64)
 	event.Fields["tid"] = tid
-	if value, ok := parse_common.LevelMap[matches[4]]; ok {
+	if value, ok := util.LevelMap[matches[4]]; ok {
 		event.Fields["level"] = value
 	} else {
 		event.Fields["level"] = strings.ToUpper(matches[4])
 	}
 	event.Fields["tag"] = matches[5]
 	event.Fields["trace_id"] = matches[6]
+
 	event.Fields["span_id"] = matches[7]
 	event.Fields["parent_span_id"] = matches[8]
 	event.Fields["network"] = matches[9]
 	event.Fields["user_id"] = matches[10]
-	if endIdx := strings.LastIndex(msgStr, "##MSG##"); endIdx > len(matches[0]) {
-		event.Fields["message"] = msgStr[len(matches[0]):endIdx]
+	if endIdx := strings.LastIndex(msg, "##MSG##"); endIdx > len(matches[0]) {
+		event.Fields["message"] = msg[len(matches[0]):endIdx]
 	} else {
-		event.Fields["message"] = msgStr[len(matches[0]):]
+		event.Fields["message"] = msg[len(matches[0]):]
 	}
 
 	return event, nil

@@ -149,6 +149,10 @@ func (c *client) Publish(_ context.Context, batch publisher.Batch) error {
 	ch := c.producer.Input()
 	for i := range events {
 		d := &events[i]
+		// remove internal fields before send to the output
+		d.Content.Delete("contents")
+		d.Content.Delete("fields")
+
 		msg, err := c.getEventMessage(d)
 		if err != nil {
 			c.log.Errorf("Dropping event: %+v", err)

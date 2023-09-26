@@ -20,11 +20,13 @@ package kafka
 import (
 	"context"
 	"fmt"
-	"github.com/goccy/go-json"
 	"io"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/goccy/go-json"
 
 	"github.com/elastic/beats/v7/libbeat/common/atomic"
 
@@ -357,11 +359,11 @@ func (m *recordReader) Next() (reader.Message, error) {
 		return reader.Message{}, io.EOF
 	}
 
-	timestamp, kafkaFields := composeEventMetadata(m.claim, m.groupHandler, msg)
+	timestamp, kafkapo := composeEventMetadata(m.claim, m.groupHandler, msg)
 	ackHandler := func() {
 		m.groupHandler.ack(msg)
 	}
-	return composeMessage(timestamp, msg.Value, kafkaFields, ackHandler), nil
+	return composeMessage(timestamp, msg.Value, kafkapo, ackHandler), nil
 }
 
 type listFromFieldReader struct {
@@ -386,7 +388,7 @@ func (l *listFromFieldReader) Next() (reader.Message, error) {
 		return reader.Message{}, io.EOF
 	}
 
-	timestamp, kafkaFields := composeEventMetadata(l.claim, l.groupHandler, msg)
+	timestamp, kafkapo := composeEventMetadata(l.claim, l.groupHandler, msg)
 	messages := l.parseMultipleMessages(msg.Value)
 
 	neededAcks := atomic.MakeInt(len(messages))
@@ -396,7 +398,7 @@ func (l *listFromFieldReader) Next() (reader.Message, error) {
 		}
 	}
 	for _, message := range messages {
-		newBuffer := append(l.buffer, composeMessage(timestamp, []byte(message), kafkaFields, ackHandler))
+		newBuffer := append(l.buffer, composeMessage(timestamp, []byte(message), kafkapo, ackHandler))
 		l.buffer = newBuffer
 	}
 
@@ -430,34 +432,41 @@ func (l *listFromFieldReader) parseMultipleMessages(bMessage []byte) []string {
 	return messages
 }
 
-func composeEventMetadata(claim sarama.ConsumerGroupClaim, handler *groupHandler, msg *sarama.ConsumerMessage) (time.Time, common.MapStr) {
+func composeEventMetadata(claim sarama.ConsumerGroupClaim, handler *groupHandler, msg *sarama.ConsumerMessage) (time.Time, string) {
 	timestamp := time.Now()
-	kafkaFields := common.MapStr{
-		"topic":     claim.Topic(),
-		"partition": claim.Partition(),
-		"offset":    msg.Offset,
-		"key":       string(msg.Key),
-	}
+	// kafkaFields := common.MapStr{
+	// 	"topic":     claim.Topic(),
+	// 	"partition": claim.Partition(),
+	// 	"offset":    msg.Offset,
+	// 	"key":       string(msg.Key),
+	// }
 
 	version, versionOk := handler.version.Get()
 	if versionOk && version.IsAtLeast(sarama.V0_10_0_0) {
 		timestamp = msg.Timestamp
-		if !msg.BlockTimestamp.IsZero() {
-			kafkaFields["block_timestamp"] = msg.BlockTimestamp
-		}
+		// if !msg.BlockTimestamp.IsZero() {
+		// 	kafkaFields["block_timestamp"] = msg.BlockTimestamp
+		// }
 	}
-	if versionOk && version.IsAtLeast(sarama.V0_11_0_0) {
-		kafkaFields["headers"] = arrayForKafkaHeaders(msg.Headers)
-	}
-	return timestamp, kafkaFields
+	// if versionOk && version.IsAtLeast(sarama.V0_11_0_0) {
+	// 	kafkaFields["headers"] = arrayForKafkaHeaders(msg.Headers)
+	// }
+
+	// kafka's partition:offset
+	sb := strings.Builder{}
+	sb.WriteString(strconv.Itoa(int(claim.Partition())))
+	sb.WriteByte(':')
+	sb.WriteString(strconv.Itoa(int(msg.Offset)))
+
+	return timestamp, sb.String()
 }
 
-func composeMessage(timestamp time.Time, content []byte, kafkaFields common.MapStr, ackHandler func()) reader.Message {
+func composeMessage(timestamp time.Time, content []byte, kafkapo string, ackHandler func()) reader.Message {
 	return reader.Message{
 		Ts:      timestamp,
 		Content: content,
 		Fields: common.MapStr{
-			"kafka":   kafkaFields,
+			"kafkapo": kafkapo,
 			"message": string(content),
 		},
 		Private: eventMeta{

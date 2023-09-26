@@ -17,21 +17,26 @@
 
 package parse_filebeat_log
 
+import (
+	"github.com/elastic/beats/v7/libbeat/common/cfgtype"
+)
+
 // Config for parse_filebeat_log processor.
 type Config struct {
-	Field           string `config:"field"`            // log message field
-	TimeField       string `config:"time_field"`       // specified the time field
-	IgnoreMissing   bool   `config:"ignore_missing"`   // whether ignoring missing field case or not
-	IgnoreMalformed bool   `config:"ignore_malformed"` // whether ignore malformed log or not
-	DropOrigin      bool   `config:"drop_origin"`      // whether drop the origin field or not
+	Field           string            `config:"field"`            // log message field
+	IgnoreMissing   bool              `config:"ignore_missing"`   // whether ignoring missing field case or not
+	IgnoreMalformed bool              `config:"ignore_malformed"` // whether ignore malformed log or not
+	TimeField       string            `config:"time_field"`       // specified the time field
+	Timezone        *cfgtype.Timezone `config:"timezone"`
+	Layouts         []string          `config:"layouts" validate:"required"`
 }
 
 func defaultConfig() Config {
 	return Config{
 		Field:           "message",
-		TimeField:       "logtime",
-		IgnoreMissing:   true,
+		TimeField:       "@timestamp",
+		IgnoreMissing:   false,
 		IgnoreMalformed: true,
-		DropOrigin:      true,
+		Timezone:        cfgtype.MustNewTimezone("Asia/Shanghai"),
 	}
 }

@@ -24,6 +24,7 @@ import (
 // Config for parse_parse_vehicle_trace2trace processor.
 type Config struct {
 	Field         string            `config:"field"`          // log message field
+	Collector     string            `config:"collector"`      // log collector used, ref: processors.LogFormat
 	IgnoreMissing bool              `config:"ignore_missing"` // Skip field when From field is missing.
 	TimeField     string            `config:"time_field"`     // specified the time field
 	Timezone      *cfgtype.Timezone `config:"timezone"`

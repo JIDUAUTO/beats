@@ -554,6 +554,25 @@ func TestOwn(t *testing.T) {
 	assert.Equal(t, expected.String(), actual.String())
 }
 
+/** benchmark result:
+go test -benchmem -run=^$ -benchtime=1000000x -bench "^(Benchmark.*)$"
+goos: linux
+goarch: amd64
+pkg: github.com/elastic/beats/v7/libbeat/processors/actions
+cpu: AMD Ryzen Threadripper PRO 3945WX 12-Cores
+BenchmarkDecodeJsonGeneric_Std-2            	 1000000	     11254 ns/op	 108.32 MB/s	    3970 B/op	      53 allocs/op
+BenchmarkDecodeJsonGeneric_Gojson-2         	 1000000	      5136 ns/op	 237.33 MB/s	    3579 B/op	      52 allocs/op
+BenchmarkDecodeJsonGeneric_Sonic-2          	 1000000	      3092 ns/op	 394.24 MB/s	    3832 B/op	      23 allocs/op
+BenchmarkDecodeJsonBinding_Std-2            	 1000000	     10430 ns/op	 116.87 MB/s	    2256 B/op	      21 allocs/op
+BenchmarkDecodeJsonBinding_Gojson-2         	 1000000	      1752 ns/op	 695.81 MB/s	    1488 B/op	       2 allocs/op
+BenchmarkDecodeJsonBinding_Sonic-2          	 1000000	      1343 ns/op	 907.86 MB/s	    2239 B/op	       4 allocs/op
+BenchmarkDecodeJsonBinding_Purge_Std-2      	 1000000	      8781 ns/op	 138.82 MB/s	    1776 B/op	      12 allocs/op
+BenchmarkDecodeJsonBinding_Purge_Gojson-2   	 1000000	      1616 ns/op	 754.40 MB/s	    1344 B/op	       2 allocs/op
+BenchmarkDecodeJsonBinding_Purge_Sonic-2    	 1000000	      1545 ns/op	 788.78 MB/s	    2093 B/op	       4 allocs/op
+PASS
+ok  	github.com/elastic/beats/v7/libbeat/processors/actions	44.996s
+*/
+
 const (
 	message = `{"contents":{"content":"2023-09-27 20:40:11.012 customer-platform customer-platform-879cf6667-6tdcn INFO [xxl-rpc, EmbedServer bizThreadPool-492992465] c.x.job.core.executor.XxlJobExecutor registJobThread [181] [02f85dae36f2a95e4e032b2e2a6a8e51] [0f260428d86e8068] >>>>>>>>>>> xxl-job regist JobThread success, jobId:1164, handler:com.xxl.job.core.handler.impl.MethodJobHandler@2fb16ac6[class com.jiduauto.customer.job.CaseDescriptionRefreshJob$$EnhancerBySpringCGLIB$$d51d54e6#refreshCaseDescription] monilog_detail_log[mybatis]-FeedbackCaseMapper.selectList|true|8ms|SUCCESS|成功 input:[\"SELECT * FROM feedback_case WHERE (create_time BETWEEN ? AND ? AND case_description = ?)\"], output:[]"},"tags":{"container.image.name":"docker.jidudev.com/tech/customer-platform:d.d6cc3.5b.1637","container.ip":"10.80.224.46","container.name":"customer-platform","host.ip":"10.80.241.28","host.name":"log-collector-kjvsm","k8s.namespace.name":"develop","k8s.node.ip":"10.80.11.6","k8s.node.name":"10.80.11.6","k8s.pod.name":"customer-platform-879cf6667-6tdcn","k8s.pod.uid":"9f821ab7-bebb-4ea6-8ff7-f813c8293de3","log.file.path":"/app/logs/customer-platform/serverlog.customer-platform-879cf6667-6tdcn.log"},"time":1695818411}`
 )
@@ -661,6 +680,17 @@ func BenchmarkDecodeJsonBinding_Sonic(b *testing.B) {
 	}
 }
 
+func BenchmarkDecodeJsonBinding_Sonic_String(b *testing.B) {
+	var w LogMessage
+	_ = sonic.UnmarshalString(message, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v LogMessage
+		_ = sonic.UnmarshalString(message, &v)
+	}
+}
+
 func BenchmarkDecodeJsonBinding_Purge_Std(b *testing.B) {
 	var w LogMessagePurge
 	m := []byte(message)
@@ -694,6 +724,17 @@ func BenchmarkDecodeJsonBinding_Purge_Sonic(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		var v LogMessagePurge
 		_ = sonic.Unmarshal(m, &v)
+	}
+}
+
+func BenchmarkDecodeJsonBinding_Purge_Sonic_String(b *testing.B) {
+	var w LogMessagePurge
+	_ = sonic.UnmarshalString(message, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v LogMessagePurge
+		_ = sonic.UnmarshalString(message, &v)
 	}
 }
 

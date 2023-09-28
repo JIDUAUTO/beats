@@ -560,17 +560,20 @@ goos: linux
 goarch: amd64
 pkg: github.com/elastic/beats/v7/libbeat/processors/actions
 cpu: AMD Ryzen Threadripper PRO 3945WX 12-Cores
-BenchmarkDecodeJsonGeneric_Std-2            	 1000000	     11254 ns/op	 108.32 MB/s	    3970 B/op	      53 allocs/op
-BenchmarkDecodeJsonGeneric_Gojson-2         	 1000000	      5136 ns/op	 237.33 MB/s	    3579 B/op	      52 allocs/op
-BenchmarkDecodeJsonGeneric_Sonic-2          	 1000000	      3092 ns/op	 394.24 MB/s	    3832 B/op	      23 allocs/op
-BenchmarkDecodeJsonBinding_Std-2            	 1000000	     10430 ns/op	 116.87 MB/s	    2256 B/op	      21 allocs/op
-BenchmarkDecodeJsonBinding_Gojson-2         	 1000000	      1752 ns/op	 695.81 MB/s	    1488 B/op	       2 allocs/op
-BenchmarkDecodeJsonBinding_Sonic-2          	 1000000	      1343 ns/op	 907.86 MB/s	    2239 B/op	       4 allocs/op
-BenchmarkDecodeJsonBinding_Purge_Std-2      	 1000000	      8781 ns/op	 138.82 MB/s	    1776 B/op	      12 allocs/op
-BenchmarkDecodeJsonBinding_Purge_Gojson-2   	 1000000	      1616 ns/op	 754.40 MB/s	    1344 B/op	       2 allocs/op
-BenchmarkDecodeJsonBinding_Purge_Sonic-2    	 1000000	      1545 ns/op	 788.78 MB/s	    2093 B/op	       4 allocs/op
+BenchmarkDecodeJsonGeneric_Std-2                  	 1000000	     11447 ns/op	 106.49 MB/s	    3970 B/op	      53 allocs/op
+BenchmarkDecodeJsonGeneric_Gojson-2               	 1000000	      4939 ns/op	 246.80 MB/s	    3579 B/op	      52 allocs/op
+BenchmarkDecodeJsonGeneric_Sonic-2                	 1000000	      3066 ns/op	 397.58 MB/s	    3831 B/op	      23 allocs/op
+BenchmarkDecodeJsonGeneric_Sonic_String-2         	 1000000	      2681 ns/op	 454.65 MB/s	    2541 B/op	      22 allocs/op
+BenchmarkDecodeJsonBinding_Std-2                  	 1000000	     10324 ns/op	 118.07 MB/s	    2256 B/op	      21 allocs/op
+BenchmarkDecodeJsonBinding_Gojson-2               	 1000000	      1759 ns/op	 693.03 MB/s	    1488 B/op	       2 allocs/op
+BenchmarkDecodeJsonBinding_Sonic-2                	 1000000	      1283 ns/op	 949.93 MB/s	    2236 B/op	       4 allocs/op
+BenchmarkDecodeJsonBinding_Sonic_String-2         	 1000000	       971.1 ns/op	1255.27 MB/s	     948 B/op	       3 allocs/op
+BenchmarkDecodeJsonBinding_Purge_Std-2            	 1000000	      8768 ns/op	 139.03 MB/s	    1776 B/op	      12 allocs/op
+BenchmarkDecodeJsonBinding_Purge_Gojson-2         	 1000000	      1526 ns/op	 798.58 MB/s	    1344 B/op	       2 allocs/op
+BenchmarkDecodeJsonBinding_Purge_Sonic-2          	 1000000	      1552 ns/op	 785.47 MB/s	    2092 B/op	       4 allocs/op
+BenchmarkDecodeJsonBinding_Purge_Sonic_String-2   	 1000000	      1248 ns/op	 976.86 MB/s	     803 B/op	       3 allocs/op
 PASS
-ok  	github.com/elastic/beats/v7/libbeat/processors/actions	44.996s
+ok  	github.com/elastic/beats/v7/libbeat/processors/actions	49.616s
 */
 
 const (

@@ -18,9 +18,12 @@
 package actions
 
 import (
+	stdjson "encoding/json"
 	"fmt"
 	"testing"
 
+	"github.com/bytedance/sonic"
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -550,3 +553,167 @@ func TestOwn(t *testing.T) {
 	}
 	assert.Equal(t, expected.String(), actual.String())
 }
+
+const (
+	message = `{"contents":{"content":"2023-09-27 20:40:11.012 customer-platform customer-platform-879cf6667-6tdcn INFO [xxl-rpc, EmbedServer bizThreadPool-492992465] c.x.job.core.executor.XxlJobExecutor registJobThread [181] [02f85dae36f2a95e4e032b2e2a6a8e51] [0f260428d86e8068] >>>>>>>>>>> xxl-job regist JobThread success, jobId:1164, handler:com.xxl.job.core.handler.impl.MethodJobHandler@2fb16ac6[class com.jiduauto.customer.job.CaseDescriptionRefreshJob$$EnhancerBySpringCGLIB$$d51d54e6#refreshCaseDescription] monilog_detail_log[mybatis]-FeedbackCaseMapper.selectList|true|8ms|SUCCESS|成功 input:[\"SELECT * FROM feedback_case WHERE (create_time BETWEEN ? AND ? AND case_description = ?)\"], output:[]"},"tags":{"container.image.name":"docker.jidudev.com/tech/customer-platform:d.d6cc3.5b.1637","container.ip":"10.80.224.46","container.name":"customer-platform","host.ip":"10.80.241.28","host.name":"log-collector-kjvsm","k8s.namespace.name":"develop","k8s.node.ip":"10.80.11.6","k8s.node.name":"10.80.11.6","k8s.pod.name":"customer-platform-879cf6667-6tdcn","k8s.pod.uid":"9f821ab7-bebb-4ea6-8ff7-f813c8293de3","log.file.path":"/app/logs/customer-platform/serverlog.customer-platform-879cf6667-6tdcn.log"},"time":1695818411}`
+)
+
+type LogMessage struct {
+	Contents struct {
+		Content string `json:"content"`
+	} `json:"contents"`
+	Tags struct {
+		ImageName     string `json:"container.image.name"`
+		ContainerIp   string `json:"container.ip"`
+		ContainerName string `json:"container.name"`
+		HostIp        string `json:"host.ip"`
+		HostName      string `json:"host.name"`
+		Namespace     string `json:"k8s.namespace.name"`
+		NodeIp        string `json:"k8s.node.ip"`
+		NodeName      string `json:"k8s.node.name"`
+		PodName       string `json:"k8s.pod.name"`
+		Uid           string `json:"k8s.pod.uid"`
+		Filepath      string `json:"log.file.path"`
+	} `json:"tags"`
+	Time int64 `json:"time"`
+}
+
+type LogMessagePurge struct {
+	Contents struct {
+		Content string `json:"content"`
+	} `json:"contents"`
+	Tags struct {
+		ContainerIp string `json:"container.ip"`
+		Namespace   string `json:"k8s.namespace.name"`
+		NodeIp      string `json:"k8s.node.ip"`
+	} `json:"tags"`
+}
+
+func BenchmarkDecodeJsonGeneric_Std(b *testing.B) {
+	var w interface{}
+	m := []byte(message)
+	_ = stdjson.Unmarshal(m, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v interface{}
+		_ = stdjson.Unmarshal(m, &v)
+	}
+}
+
+func BenchmarkDecodeJsonGeneric_Gojson(b *testing.B) {
+	var w interface{}
+	m := []byte(message)
+	_ = json.Unmarshal(m, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v interface{}
+		_ = json.Unmarshal(m, &v)
+	}
+}
+
+func BenchmarkDecodeJsonGeneric_Sonic(b *testing.B) {
+	var w interface{}
+	m := []byte(message)
+	_ = sonic.Unmarshal(m, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v interface{}
+		_ = sonic.Unmarshal(m, &v)
+	}
+}
+
+func BenchmarkDecodeJsonBinding_Std(b *testing.B) {
+	var w LogMessage
+	m := []byte(message)
+	_ = stdjson.Unmarshal(m, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v LogMessage
+		_ = stdjson.Unmarshal(m, &v)
+	}
+}
+
+func BenchmarkDecodeJsonBinding_Gojson(b *testing.B) {
+	var w LogMessage
+	m := []byte(message)
+	_ = json.Unmarshal(m, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v LogMessage
+		_ = json.Unmarshal(m, &v)
+	}
+}
+
+func BenchmarkDecodeJsonBinding_Sonic(b *testing.B) {
+	var w LogMessage
+	m := []byte(message)
+	_ = sonic.Unmarshal(m, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v LogMessage
+		_ = sonic.Unmarshal(m, &v)
+	}
+}
+
+func BenchmarkDecodeJsonBinding_Purge_Std(b *testing.B) {
+	var w LogMessagePurge
+	m := []byte(message)
+	_ = stdjson.Unmarshal(m, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v LogMessagePurge
+		_ = stdjson.Unmarshal(m, &v)
+	}
+}
+
+func BenchmarkDecodeJsonBinding_Purge_Gojson(b *testing.B) {
+	var w LogMessagePurge
+	m := []byte(message)
+	_ = json.Unmarshal(m, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v LogMessagePurge
+		_ = json.Unmarshal(m, &v)
+	}
+}
+
+func BenchmarkDecodeJsonBinding_Purge_Sonic(b *testing.B) {
+	var w LogMessagePurge
+	m := []byte(message)
+	_ = sonic.Unmarshal(m, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v LogMessagePurge
+		_ = sonic.Unmarshal(m, &v)
+	}
+}
+
+// gjson 无法获取字段名中含有点号(.)的值
+// func BenchmarkDecodeJson_gjson(b *testing.B) {
+// 	const expectedContainerIp = "10.80.224.46"
+//
+// 	_ = gjson.Get(message, "contents.content").String()
+// 	containerIp := gjson.Get(message, "tags.container.ip").String()
+// 	if containerIp != expectedContainerIp {
+// 		b.Fatalf("json field `tags.container.ip` expected: %s but got: %s", expectedContainerIp, containerIp)
+// 	}
+// 	_ = gjson.Get(message, "tags.k8s.node.ip").String()
+// 	_ = gjson.Get(message, "tags.k8s.namespace.name").String()
+// 	b.SetBytes(int64(len(message)))
+// 	b.ResetTimer()
+// 	for i := 0; i < b.N; i++ {
+// 		_ = gjson.Get(message, "contents.content").String()
+// 		_ = gjson.Get(message, "tags.container.ip").String()
+// 		_ = gjson.Get(message, "tags.k8s.node.ip").String()
+// 		_ = gjson.Get(message, "tags.k8s.namespace.name").String()
+// 	}
+// }

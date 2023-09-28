@@ -644,6 +644,17 @@ func BenchmarkDecodeJsonGeneric_Sonic(b *testing.B) {
 	}
 }
 
+func BenchmarkDecodeJsonGeneric_Sonic_String(b *testing.B) {
+	var w interface{}
+	_ = sonic.UnmarshalString(message, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v interface{}
+		_ = sonic.UnmarshalString(message, &v)
+	}
+}
+
 func BenchmarkDecodeJsonBinding_Std(b *testing.B) {
 	var w LogMessage
 	m := []byte(message)

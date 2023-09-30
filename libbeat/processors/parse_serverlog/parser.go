@@ -22,9 +22,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
-	"github.com/thinkeridea/go-extend/exstrings"
 
 	"github.com/elastic/beats/v7/libbeat/beat"
 	"github.com/elastic/beats/v7/libbeat/common"
@@ -145,7 +145,7 @@ func (p *parseServerlog) Run(event *beat.Event) (*beat.Event, error) {
 	endIdx = strings.LastIndex(msg, util.MsgTag)
 	if beginIdx > 0 && beginIdx+len(util.MsgTag) != endIdx {
 		var obj map[string]interface{}
-		err = json.Unmarshal(exstrings.UnsafeToBytes(msg[beginIdx+len(util.MsgTag):endIdx]), &obj)
+		err = sonic.UnmarshalString(msg[beginIdx+len(util.MsgTag):endIdx], &obj)
 		if err != nil {
 			event.Fields["json_error"] = err
 		} else {

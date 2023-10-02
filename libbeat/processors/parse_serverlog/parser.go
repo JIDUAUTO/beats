@@ -89,6 +89,9 @@ func (p *parseServerlog) Run(event *beat.Event) (*beat.Event, error) {
 		return nil, makeErrMissingField(p.config.Field, err)
 	}
 	msg := message.(string)
+	if len(msg) <= 23 {
+		return nil, nil
+	}
 	event.Fields["message"] = msg
 
 	// Parse time field

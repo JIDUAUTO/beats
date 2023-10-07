@@ -28,85 +28,76 @@ import (
 
 func TestServerLogWithData(t *testing.T) {
 	input := common.MapStr{
-		"message": `{"contents":{"content":"2023-09-18 11:32:58.511 ai-repair-common ai-repair-common-69685c846c-kr47m INFO [http-nio-8080-exec-1]
-com.jidu.postsale.config.LogAspect doAround [66] [4652dc92fb8240777ad468f1623aaaff] [f9567a128ed25419]
-【智能维修】【响应日志】{\"code\":0,\"msg\":\"请求成功\"}##JIDU##{\"conts\":{\"cont\":\"123\"},\"ta\":{\"ip\":\"10.90.33.11\",\"name\":\"10.90.33.11\"},
-\"time-test\":1695007978}##JIDU## time=2023-09-22T16:42:02+08:00 level=info msg=Stats In One Minute. AVGPT=0 SUM=0 TPS=0.00 statsKey=topic_passport_c_token@apisix-token-clean-passportc statsName=PULL_RT"},
-"tags":{"container.image.name":"docker.jidudev.com/tech/ai-repair-common:s.95f66.57.1904","container.ip":"10.90.44.137",
-"container.name":"ai-repair-common","host.ip":"10.90.162.80","host.name":"log-collector-6s7vk","k8s.namespace.name":"develop","k8s.node.ip":"10.90.33.11",
-"k8s.node.name":"10.90.33.11","k8s.pod.name":"ai-repair-common-69685c846c-kr47m","k8s.pod.uid":"fc75c40f-f5b1-4e64-8ef9-0557c7ceca82",
-"log.file.path":"/app/logs/ai-repair-common/serverlog.ai-repair-common-69685c846c-kr47m.log"},"time":1695007978}`,
+		"message": `2023-09-20 15:46:18.052 jidu-mesh-be jidu-mesh-be-74bcf7cdd6-z7z5b INFO [/home/jenkins/agent/workspace/all-project-golang-build-job/internal/transport/http/middleware/logger.go] - jidudev.com/tech/jidu-mesh-be/internal/transport/http/middleware.Logger.func1 [82] [3bbebdfd1ed58ae86c386a27acd2ebe4] [9de7d5accf3efb4d] ##JIDU####JIDU##\u001f time=2023-09-20T15:46:18+08:00\u001f level=info\u001f content-type=""\u001f http_referer=https://localhost:8001/mesh-fe/serveDetail/serviceMonitor?env=dev&jns=cn.pe.vi.remote-monitor-wti.mixed&cluster=dev&var-apis=all&var-pods-api=10.80.232.65&relative_api=1&from_api=now-5m&to_api=now&refresh_api=0\u001f http_user_agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36\u001f latency-ms=27\u001f method=GET\u001f remote_addr=172.16.22.54\u001f request=/v1/prom/pod/cpu/limit\u001f request_body=""\u001f request_length=0\u001f request_query=pod_name[]=remote-monitor-wti-55f757f8-rx5tv&start=2023-09-20T07:41:00.000Z&end=2023-09-20T07:46:00.000Z&step=30\u001f response_body={"code":0,"data":[{"namespace":"develop","pod":"remote-monitor-wti-55f757f8-rx5tv","container":"remote-monitor-wti","values":[[1695195660000,"2"],[1695195690000,"2"],[1695195720000,"2"],[1695195750000,"2"],[1695195780000,"2"],[1695195810000,"2"],[1695195840000,"2"],[1695195870000,"2"],[1695195900000,"2"],[1695195930000,"2"],[1695195960000,"2"]]}],"msg":"ok"}\u001f status=200\u001f transport=http`,
 	}
 	testConfig, _ := common.NewConfigFrom(map[string]interface{}{
-		"Field":           "message",
-		"TimeField":       "logtime",
-		"IgnoreMissing":   true,
-		"IgnoreMalformed": true,
-		"DropOrigin":      true,
+		"Field":         "message",
+		"TimeField":     "@timestamp",
+		"IgnoreMissing": true,
+		//	定义Layouts
 	})
 	actual := getActualValue(t, testConfig, input)
 	expected := map[string]interface{}{
-		"logtime":         "2023-09-18 11:32:58.511",
-		"jiduservicename": "ai-repair-common",
-		"hostname":        "ai-repair-common-69685c846c-kr47m",
+		"@timestamp":      "2023-09-20 15:46:18.052",
+		"content-type":    "\"\"",
+		"file":            "/home/jenkins/agent/workspace/all-project-golang-build-job/internal/transport/http/middleware/logger.go",
+		"hostname":        "jidu-mesh-be-74bcf7cdd6-z7z5b",
+		"http_referer":    "https://localhost:8001/mesh-fe/serveDetail/serviceMonitor?env=dev&jns=cn.pe.vi.remote-monitor-wti.mixed&cluster=dev&var-apis=all&var-pods-api=10.80.232.65&relative_api=1&from_api=now-5m&to_api=now&refresh_api=0",
+		"http_user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36",
+		"jiduservicename": "jidu-mesh-be",
+		"latency-ms":      int64(27),
 		"level":           "INFO",
-		"thread":          "http-nio-8080-exec-1",
-		"class":           "com.jidu.postsale.config.LogAspect",
-		"method":          "doAround",
-		"line":            int64(66),
-		"trace_id":        "4652dc92fb8240777ad468f1623aaaff",
-		"span_id":         "f9567a128ed25419",
-		"message":         `{"conts":{"cont":"123"},"ta":{"ip":"10.90.33.11","name":"10.90.33.11"},"time-test":1695007978}##JIDU## time=2023-09-22T16:42:02+08:00 level=info msg=Stats In One Minute. AVGPT=0 SUM=0 TPS=0.00 statsKey=topic_passport_c_token@apisix-token-clean-passportc statsName=PULL_RT`,
-		"conts.cont":      "123",
-		"ta.name":         "10.90.33.11",
-		"ta.ip":           "10.90.33.11",
-		"time-test":       float64(1695007978),
+		"line":            "82",
+		"message":         "2023-09-20 15:46:18.052 jidu-mesh-be jidu-mesh-be-74bcf7cdd6-z7z5b INFO [/home/jenkins/agent/workspace/all-project-golang-build-job/internal/transport/http/middleware/logger.go] - jidudev.com/tech/jidu-mesh-be/internal/transport/http/middleware.Logger.func1 [82] [3bbebdfd1ed58ae86c386a27acd2ebe4] [9de7d5accf3efb4d] ##JIDU####JIDU## time=2023-09-20T15:46:18+08:00 level=info content-type=\"\" http_referer=https://localhost:8001/mesh-fe/serveDetail/serviceMonitor?env=dev&jns=cn.pe.vi.remote-monitor-wti.mixed&cluster=dev&var-apis=all&var-pods-api=10.80.232.65&relative_api=1&from_api=now-5m&to_api=now&refresh_api=0 http_user_agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 latency-ms=27 method=GET remote_addr=172.16.22.54 request=/v1/prom/pod/cpu/limit request_body=\"\" request_length=0 request_query=pod_name[]=remote-monitor-wti-55f757f8-rx5tv&start=2023-09-20T07:41:00.000Z&end=2023-09-20T07:46:00.000Z&step=30 response_body={\"code\":0,\"data\":[{\"namespace\":\"develop\",\"pod\":\"remote-monitor-wti-55f757f8-rx5tv\",\"container\":\"remote-monitor-wti\",\"values\":[[1695195660000,\"2\"],[1695195690000,\"2\"],[1695195720000,\"2\"],[1695195750000,\"2\"],[1695195780000,\"2\"],[1695195810000,\"2\"],[1695195840000,\"2\"],[1695195870000,\"2\"],[1695195900000,\"2\"],[1695195930000,\"2\"],[1695195960000,\"2\"]]}],\"msg\":\"ok\"} status=200 transport=http",
+		"method":          "GET",
+		"remote_addr":     "172.16.22.54",
+		"request":         "/v1/prom/pod/cpu/limit",
+		"request_body":    "\"\"",
+		"request_length":  int64(0),
+		"request_query":   "pod_name[]=remote-monitor-wti-55f757f8-rx5tv&start=2023-09-20T07:41:00.000Z&end=2023-09-20T07:46:00.000Z&step=30",
+		"response_body":   "{\"code\":0,\"data\":[{\"namespace\":\"develop\",\"pod\":\"remote-monitor-wti-55f757f8-rx5tv\",\"container\":\"remote-monitor-wti\",\"values\":[[1695195660000,\"2\"],[1695195690000,\"2\"],[1695195720000,\"2\"],[1695195750000,\"2\"],[1695195780000,\"2\"],[1695195810000,\"2\"],[1695195840000,\"2\"],[1695195870000,\"2\"],[1695195900000,\"2\"],[1695195930000,\"2\"],[1695195960000,\"2\"]]}],\"msg\":\"ok\"}",
+		"span_id":         "9de7d5accf3efb4d",
+		"status":          int64(200),
+		"thread":          "-",
+		"time":            "2023-09-20T15:46:18+08:00",
+		"trace_id":        "3bbebdfd1ed58ae86c386a27acd2ebe4",
+		"transport":       "http",
 	}
 
-	assert.Equal(t, expected["logtime"], actual["logtime"])
-	assert.Equal(t, expected["jiduservicename"], actual["jiduservicename"])
+	//assert.Equal(t, expected["@timestamp"], actual["@timestamp"])
+	assert.Equal(t, expected["content-type"], actual["content-type"])
+	assert.Equal(t, expected["file"], actual["file"])
 	assert.Equal(t, expected["hostname"], actual["hostname"])
+	assert.Equal(t, expected["http_referer"], actual["http_referer"])
+	assert.Equal(t, expected["http_user_agent"], actual["http_user_agent"])
+	assert.Equal(t, expected["jiduservicename"], actual["jiduservicename"])
+	assert.Equal(t, expected["latency-ms"], actual["latency-ms"])
 	assert.Equal(t, expected["level"], actual["level"])
-	assert.Equal(t, expected["thread"], actual["thread"])
-	assert.Equal(t, expected["class"], actual["class"])
-	assert.Equal(t, expected["method"], actual["method"])
 	assert.Equal(t, expected["line"], actual["line"])
-	assert.Equal(t, expected["trace_id"], actual["trace_id"])
-	assert.Equal(t, expected["span_id"], actual["span_id"])
 	assert.Equal(t, expected["message"], actual["message"])
+	assert.Equal(t, expected["method"], actual["method"])
+	assert.Equal(t, expected["remote_addr"], actual["remote_addr"])
+	assert.Equal(t, expected["request"], actual["request"])
+	assert.Equal(t, expected["request_body"], actual["request_body"])
+	assert.Equal(t, expected["request_length"], actual["request_length"])
+	assert.Equal(t, expected["request_query"], actual["request_query"])
+	assert.Equal(t, expected["response_body"], actual["response_body"])
+	assert.Equal(t, expected["span_id"], actual["span_id"])
+	assert.Equal(t, expected["status"], actual["status"])
+	assert.Equal(t, expected["thread"], actual["thread"])
+	assert.Equal(t, expected["time"], actual["time"])
+	assert.Equal(t, expected["trace_id"], actual["trace_id"])
+	assert.Equal(t, expected["transport"], actual["transport"])
 
-	contsCont, err := actual.GetValue("conts.cont")
-	assert.Nil(t, err)
-	assert.Equal(t, expected["conts.cont"], contsCont)
-
-	taName, err := actual.GetValue("ta.name")
-	assert.Nil(t, err)
-	assert.Equal(t, expected["ta.name"], taName)
-
-	taIp, err := actual.GetValue("ta.ip")
-	assert.Nil(t, err)
-	assert.Equal(t, expected["ta.ip"], taIp)
-
-	assert.Equal(t, expected["time-test"], actual["time-test"])
-}
-
-func TestServerLogNoData(t *testing.T) {
-	message := `{"contents":{"content":"2023-09-22 16:45:15.806 apisix-token-clean apisix-token-clean-5dcd4464b8-qnqzn INFO [/go/pkg/mod/jidudev.com/tech/rocketmq-client-go/v2@v2.1.6/internal/client.go] - github.com/apache/rocketmq-client-go/v2/internal.GetOrNewRocketMQClient.func3 [266] [] [] ##JIDU####JIDU## time=2023-09-22T16:45:15+08:00 level=info msg=receive get consumer running info request..."},"tags":{"container.image.name":"docker.jidudev.com/tech/apisix-token-clean:71df020e","container.ip":"10.80.224.116","container.name":"apisix-token-clean","host.ip":"10.80.225.102","host.name":"log-collector-2h277","k8s.namespace.name":"develop","k8s.node.ip":"10.80.11.20","k8s.node.name":"10.80.11.20","k8s.pod.name":"apisix-token-clean-5dcd4464b8-qnqzn","k8s.pod.uid":"de60fb4e-5536-4d4b-be56-9cff739f7d7a","log.file.path":"/app/logs/apisix-token-clean/serverlog.apisix-token-clean-5dcd4464b8-qnqzn.log"},"time":1695372315}`
-}
-
-func TestServerLogNoTag(t *testing.T) {
-	message := `2023-09-22 16:20:46.531 fota-gateway 10.90.42.20 WARN [grpc-default-executor-1598] c.j.j.c.watch.CustomServicesWatch
-getInstanceByHost [61] [10676155e01c165f732129fd9c2fa341] [c88dac5f5f59d7b6] jns_warn: Cannot query instance when host is empty,
-host null, instances [DefaultServiceInstance{instanceId='develop/fota-gateway-665cbdf9bf-zxjfr', serviceId='develop/fota-gateway-665cbdf9bf-zxjfr',
-host='10.90.42.20', port=8080, secure=false, metadata={color=default, control-by=develop/fota-gateway, grpc_port=9090, idc=bj, weight=100}}]`
 }
 
 func getActualValue(t *testing.T, config *common.Config, input common.MapStr) common.MapStr {
-	p, err := NewParseServerlog(config)
+	p, err := NewParseAccesslog(config)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	actual, _ := p.Run(&beat.Event{Fields: input})
+	assert.Equal(t, "2023-10-07T03:26:51.051Z", actual.Timestamp.Format("2006-01-02 15:04:05.000"))
 	return actual.Fields
 }

@@ -18,6 +18,7 @@
 package parse_accesslog
 
 import (
+	"strconv"
 	"strings"
 	"time"
 
@@ -34,7 +35,7 @@ import (
 const (
 	procName = "parse_accesslog"
 	logName  = "processor." + procName
-	spliter  = "\u001f "
+	spliter  = `\u001f `
 )
 
 func init() {
@@ -68,13 +69,13 @@ func NewParseAccesslog(cfg *common.Config) (processors.Processor, error) {
 func (p *parseAccesslog) Run(event *beat.Event) (*beat.Event, error) {
 	/* filter */
 	// event filter
-	processor, err := event.GetValue(processors.FieldProcessor)
-	if err != nil {
-		return event, nil
-	}
-	if processor != procName {
-		return event, nil
-	}
+	//processor, err := event.GetValue(processors.FieldProcessor)
+	//if err != nil {
+	//	return event, nil
+	//}
+	//if processor != procName {
+	//	return event, nil
+	//}
 
 	message, err := event.GetValue(p.config.Field)
 	if err != nil {
@@ -128,13 +129,13 @@ func (p *parseAccesslog) Run(event *beat.Event) (*beat.Event, error) {
 		}
 		event.Fields["line"] = items[2][0 : len(items[2])-1]
 		event.Fields["trace_id"] = items[3][0 : len(items[3])-1]
-		event.Fields["span_id"] = items[4][0 : len(items[4])-1]
+		event.Fields["span_id"] = items[4][0 : len(items[4])-2]
 	}
 	startId := strings.Index(msg, spliter)
 	if startId == -1 {
 		return event, nil
 	}
-	tailMsg := msg[startId+2:]
+	tailMsg := msg[startId+7:]
 	kvs := strings.Split(tailMsg, spliter)
 	for _, kv := range kvs {
 		idx := strings.Index(kv, "=")
@@ -144,7 +145,27 @@ func (p *parseAccesslog) Run(event *beat.Event) (*beat.Event, error) {
 		event.Fields["level"] = level
 	}
 
-	//todo
+	status, err := strconv.ParseInt(event.Fields["status"].(string), 10, 64)
+	if err != nil {
+		status = 0
+	}
+	event.Fields["status"] = status
+
+	requestLength, err := strconv.ParseInt(event.Fields["request_length"].(string), 10, 64)
+	if err != nil {
+		requestLength = 0
+	}
+	event.Fields["request_length"] = requestLength
+
+	latencyMs, err := strconv.ParseInt(event.Fields["latency-ms"].(string), 10, 64)
+	if err != nil {
+		latencyMs = 0
+	}
+	event.Fields["latency-ms"] = latencyMs
+
+	msg = strings.ReplaceAll(msg, `\u001f`, "")
+
+	event.Fields["message"] = msg
 
 	return event, nil
 }

@@ -27,7 +27,7 @@ type Config struct {
 	IgnoreMissing bool              `config:"ignore_missing"` // Skip field when From field is missing.
 	TimeField     string            `config:"time_field"`     // specified the time field
 	Timezone      *cfgtype.Timezone `config:"timezone"`
-	Layouts       []string          `configs:"layouts" validate:"required"`
+	Layouts       []string          `configs:"layouts"` //validate:"required"
 }
 
 func defaultConfig() Config {
@@ -36,5 +36,7 @@ func defaultConfig() Config {
 		TimeField:     "@timestamp",
 		IgnoreMissing: false,
 		Timezone:      cfgtype.MustNewTimezone("Asia/Shanghai"),
+		//test 时需定义
+		//Layouts:       []string{"2006-01-02 15:04:05.000"},
 	}
 }

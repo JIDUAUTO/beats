@@ -31,7 +31,8 @@ import (
 const logName = "processors"
 
 const (
-	FieldProcessor = "fields.handler"
+	FieldProcessor = "handler"
+	FieldCollector = "collector"
 )
 
 // Processors is

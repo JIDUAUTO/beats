@@ -68,17 +68,21 @@ func New(cfg *common.Config) (processors.Processor, error) {
 // Run parse log
 func (p *parseServerlog) Run(event *beat.Event) (*beat.Event, error) {
 	// event filter
-	processor := event.Fields[processors.FieldProcessor]
+	processor, err := event.GetValue(processors.FieldProcessor)
+	if err != nil {
+		return nil, err
+	}
 	if processor != procName {
 		return event, nil
 	}
 
-	collector, ok := event.Fields[processors.FieldCollector]
-	if ok {
-		err := processors.LogPreprocessing(event, processors.LogFormat(collector.(string)))
-		if err != nil {
-			return event, err
-		}
+	collector, err := event.GetValue(processors.FieldCollector)
+	if err != nil {
+		return nil, err
+	}
+	err = processors.LogPreprocessing(event, processors.LogFormat(collector.(string)))
+	if err != nil {
+		return event, err
 	}
 
 	message, err := event.GetValue(p.config.Field)

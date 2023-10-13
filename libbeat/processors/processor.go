@@ -32,6 +32,7 @@ const logName = "processors"
 
 const (
 	FieldProcessor = "fields.handler"
+	FieldCollector = "fields.collector"
 )
 
 // Processors is

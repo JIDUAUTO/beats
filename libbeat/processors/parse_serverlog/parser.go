@@ -22,9 +22,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
-	"github.com/thinkeridea/go-extend/exstrings"
 
 	"github.com/elastic/beats/v7/libbeat/beat"
 	"github.com/elastic/beats/v7/libbeat/common"
@@ -39,7 +39,7 @@ const (
 )
 
 func init() {
-	processors.RegisterPlugin(procName, NewParseServerlog)
+	processors.RegisterPlugin(procName, New)
 	// jsprocessor.RegisterPlugin(strings.Title(procName), New)
 }
 
@@ -48,8 +48,8 @@ type parseServerlog struct {
 	logger *logp.Logger
 }
 
-// NewParseServerlog constructs a new parse_serverlog processor.
-func NewParseServerlog(cfg *common.Config) (processors.Processor, error) {
+// New constructs a new parse_serverlog processor.
+func New(cfg *common.Config) (processors.Processor, error) {
 	config := defaultConfig()
 	if err := cfg.Unpack(&config); err != nil {
 		return nil, makeErrConfigUnpack(err)
@@ -70,10 +70,19 @@ func (p *parseServerlog) Run(event *beat.Event) (*beat.Event, error) {
 	// event filter
 	processor, err := event.GetValue(processors.FieldProcessor)
 	if err != nil {
-		return event, nil
+		return nil, err
 	}
 	if processor != procName {
 		return event, nil
+	}
+
+	collector, err := event.GetValue(processors.FieldCollector)
+	if err != nil {
+		return nil, err
+	}
+	err = processors.LogPreprocessing(event, processors.LogFormat(collector.(string)))
+	if err != nil {
+		return event, err
 	}
 
 	message, err := event.GetValue(p.config.Field)
@@ -84,6 +93,10 @@ func (p *parseServerlog) Run(event *beat.Event) (*beat.Event, error) {
 		return nil, makeErrMissingField(p.config.Field, err)
 	}
 	msg := message.(string)
+	if len(msg) <= 23 {
+		return nil, nil
+	}
+	event.Fields["message"] = msg
 
 	// Parse time field
 	for _, layout := range p.config.Layouts {
@@ -104,19 +117,19 @@ func (p *parseServerlog) Run(event *beat.Event) (*beat.Event, error) {
 		return nil, nil
 	}
 
-	event.Fields["jiduservicename"] = items[2]
-
 	// filter benchmark log
 	if strings.HasPrefix(util.Trim(items[9]), util.BenchmarkPrefix) {
 		// Drop event<benchmark log>
 		return nil, nil
 	}
 
+	event.Fields["jiduservicename"] = items[2]
+	event.Fields["hostname"] = items[3]
+	event.Fields["level"] = strings.ToUpper(items[4])
+
 	var beginIdx, endIdx int
 	line, err := strconv.ParseInt(util.Trim(items[8]), 10, 64)
 	if err == nil {
-		event.Fields["hostname"] = items[3]
-		event.Fields["level"] = strings.ToUpper(items[4])
 		event.Fields["thread"] = util.Trim(items[5])
 		event.Fields["class"] = items[6]
 		event.Fields["method"] = items[7]
@@ -137,9 +150,9 @@ func (p *parseServerlog) Run(event *beat.Event) (*beat.Event, error) {
 
 	// 含有json数据
 	endIdx = strings.LastIndex(msg, util.MsgTag)
-	if beginIdx+len(util.MsgTag) != endIdx {
+	if beginIdx > 0 && beginIdx+len(util.MsgTag) < endIdx {
 		var obj map[string]interface{}
-		err = json.Unmarshal(exstrings.UnsafeToBytes(msg[beginIdx+len(util.MsgTag):endIdx]), &obj)
+		err = sonic.UnmarshalString(msg[beginIdx+len(util.MsgTag):endIdx], &obj)
 		if err != nil {
 			event.Fields["json_error"] = err
 		} else {

@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/elastic/beats/v7/libbeat/beat"
 	"github.com/elastic/beats/v7/libbeat/common"
@@ -90,19 +91,41 @@ com.jidu.postsale.config.LogAspect doAround [66] [4652dc92fb8240777ad468f1623aaa
 	assert.Equal(t, expected["time-test"], actual["time-test"])
 }
 
-func TestServerLogNoData(t *testing.T) {
-	//message := `{"contents":{"content":"2023-09-22 16:45:15.806 apisix-token-clean apisix-token-clean-5dcd4464b8-qnqzn INFO [/go/pkg/mod/jidudev.com/tech/rocketmq-client-go/v2@v2.1.6/internal/client.go] - github.com/apache/rocketmq-client-go/v2/internal.GetOrNewRocketMQClient.func3 [266] [] [] ##JIDU####JIDU## time=2023-09-22T16:45:15+08:00 level=info msg=receive get consumer running info request..."},"tags":{"container.image.name":"docker.jidudev.com/tech/apisix-token-clean:71df020e","container.ip":"10.80.224.116","container.name":"apisix-token-clean","host.ip":"10.80.225.102","host.name":"log-collector-2h277","k8s.namespace.name":"develop","k8s.node.ip":"10.80.11.20","k8s.node.name":"10.80.11.20","k8s.pod.name":"apisix-token-clean-5dcd4464b8-qnqzn","k8s.pod.uid":"de60fb4e-5536-4d4b-be56-9cff739f7d7a","log.file.path":"/app/logs/apisix-token-clean/serverlog.apisix-token-clean-5dcd4464b8-qnqzn.log"},"time":1695372315}`
-}
+// func TestServerLogNoData(t *testing.T) {
+// 	message := `{"contents":{"content":"2023-09-22 16:45:15.806 apisix-token-clean apisix-token-clean-5dcd4464b8-qnqzn INFO [/go/pkg/mod/jidudev.com/tech/rocketmq-client-go/v2@v2.1.6/internal/client.go] - github.com/apache/rocketmq-client-go/v2/internal.GetOrNewRocketMQClient.func3 [266] [] [] ##JIDU####JIDU## time=2023-09-22T16:45:15+08:00 level=info msg=receive get consumer running info request..."},"tags":{"container.image.name":"docker.jidudev.com/tech/apisix-token-clean:71df020e","container.ip":"10.80.224.116","container.name":"apisix-token-clean","host.ip":"10.80.225.102","host.name":"log-collector-2h277","k8s.namespace.name":"develop","k8s.node.ip":"10.80.11.20","k8s.node.name":"10.80.11.20","k8s.pod.name":"apisix-token-clean-5dcd4464b8-qnqzn","k8s.pod.uid":"de60fb4e-5536-4d4b-be56-9cff739f7d7a","log.file.path":"/app/logs/apisix-token-clean/serverlog.apisix-token-clean-5dcd4464b8-qnqzn.log"},"time":1695372315}`
+// }
+//
+// func TestServerLogNoTag(t *testing.T) {
+// 	message := `2023-09-22 16:20:46.531 fota-gateway 10.90.42.20 WARN [grpc-default-executor-1598] c.j.j.c.watch.CustomServicesWatch
+// getInstanceByHost [61] [10676155e01c165f732129fd9c2fa341] [c88dac5f5f59d7b6] jns_warn: Cannot query instance when host is empty,
+// host null, instances [DefaultServiceInstance{instanceId='develop/fota-gateway-665cbdf9bf-zxjfr', serviceId='develop/fota-gateway-665cbdf9bf-zxjfr',
+// host='10.90.42.20', port=8080, secure=false, metadata={color=default, control-by=develop/fota-gateway, grpc_port=9090, idc=bj, weight=100}}]`
+// }
 
-func TestServerLogNoTag(t *testing.T) {
-	//	message := `2023-09-22 16:20:46.531 fota-gateway 10.90.42.20 WARN [grpc-default-executor-1598] c.j.j.c.watch.CustomServicesWatch
-	//getInstanceByHost [61] [10676155e01c165f732129fd9c2fa341] [c88dac5f5f59d7b6] jns_warn: Cannot query instance when host is empty,
-	//host null, instances [DefaultServiceInstance{instanceId='develop/fota-gateway-665cbdf9bf-zxjfr', serviceId='develop/fota-gateway-665cbdf9bf-zxjfr',
-	//host='10.90.42.20', port=8080, secure=false, metadata={color=default, control-by=develop/fota-gateway, grpc_port=9090, idc=bj, weight=100}}]`
+func TestMalformedLog(t *testing.T) {
+	message := `2023-09-27 20:40:11.012 customer-platform customer-platform-879cf6667-6tdcn INFO [xxl-rpc, EmbedServer bizThreadPool-492992465] c.x.job.core.executor.XxlJobExecutor registJobThread [181] [02f85dae36f2a95e4e032b2e2a6a8e51] [0f260428d86e8068] >>>>>>>>>>> xxl-job regist JobThread success, jobId:1164, handler:com.xxl.job.core.handler.impl.MethodJobHandler@2fb16ac6[class com.jiduauto.customer.job.CaseDescriptionRefreshJob$$EnhancerBySpringCGLIB$$d51d54e6#refreshCaseDescription]`
+
+	config := common.MustNewConfigFrom(common.MapStr{
+		"layouts": []string{"2006-01-02 15:04:05.000"},
+	})
+	p, err := New(config)
+	require.NoError(t, err)
+
+	event, err := p.Run(&beat.Event{
+		Fields: common.MapStr{
+			"message": message,
+			"fields": common.MapStr{
+				"handler": "parse_serverlog",
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	t.Log(event)
 }
 
 func getActualValue(t *testing.T, config *common.Config, input common.MapStr) common.MapStr {
-	p, err := NewParseServerlog(config)
+	p, err := New(config)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -66,10 +66,7 @@ func New(cfg *common.Config) (processors.Processor, error) {
 // Run parse filebeat's log
 func (p *parseFilebeatLog) Run(event *beat.Event) (*beat.Event, error) {
 	// event filter
-	processor, err := event.GetValue(processors.FieldProcessor)
-	if err != nil {
-		return event, nil
-	}
+	processor := event.Fields[processors.FieldProcessor]
 	if processor != procName {
 		return event, nil
 	}

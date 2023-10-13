@@ -48,6 +48,8 @@ type kafkaInputConfig struct {
 	IsolationLevel           isolationLevel    `config:"isolation_level"`
 	Fetch                    kafkaFetch        `config:"fetch"`
 	Rebalance                kafkaRebalance    `config:"rebalance"`
+	Session                  kafkaSession      `config:"session"`
+	Heartbeat                kafkaHeartbeat    `config:"heartbeat"`
 	TLS                      *tlscommon.Config `config:"ssl"`
 	Kerberos                 *kerberos.Config  `config:"kerberos"`
 	Username                 string            `config:"username"`
@@ -67,6 +69,14 @@ type kafkaRebalance struct {
 	Timeout      time.Duration     `config:"timeout"`
 	MaxRetries   int               `config:"max_retries"`
 	RetryBackoff time.Duration     `config:"retry_backoff" validate:"min=0"`
+}
+
+type kafkaHeartbeat struct {
+	Interval time.Duration `config:"interval"`
+}
+
+type kafkaSession struct {
+	Timeout time.Duration `config:"timeout"`
 }
 
 type initialOffset int
@@ -128,6 +138,12 @@ func defaultConfig() kafkaInputConfig {
 			MaxRetries:   4,
 			RetryBackoff: 2 * time.Second,
 		},
+		Session: kafkaSession{
+			Timeout: 10 * time.Second,
+		},
+		Heartbeat: kafkaHeartbeat{
+			Interval: 3 * time.Second,
+		},
 	}
 }
 
@@ -171,6 +187,9 @@ func newSaramaConfig(config kafkaInputConfig) (*sarama.Config, error) {
 	k.Consumer.Group.Rebalance.Timeout = config.Rebalance.Timeout
 	k.Consumer.Group.Rebalance.Retry.Backoff = config.Rebalance.RetryBackoff
 	k.Consumer.Group.Rebalance.Retry.Max = config.Rebalance.MaxRetries
+
+	k.Consumer.Group.Session.Timeout = config.Session.Timeout
+	k.Consumer.Group.Heartbeat.Interval = config.Heartbeat.Interval
 
 	tls, err := tlscommon.LoadTLSConfig(config.TLS)
 	if err != nil {

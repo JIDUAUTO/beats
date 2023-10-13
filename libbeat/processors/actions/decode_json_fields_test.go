@@ -18,9 +18,12 @@
 package actions
 
 import (
+	stdjson "encoding/json"
 	"fmt"
 	"testing"
 
+	"github.com/bytedance/sonic"
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -550,3 +553,222 @@ func TestOwn(t *testing.T) {
 	}
 	assert.Equal(t, expected.String(), actual.String())
 }
+
+/** benchmark result:
+go test -benchmem -run=^$ -benchtime=1000000x -bench "^(Benchmark.*)$"
+goos: linux
+goarch: amd64
+pkg: github.com/elastic/beats/v7/libbeat/processors/actions
+cpu: AMD Ryzen Threadripper PRO 3945WX 12-Cores
+BenchmarkDecodeJsonGeneric_Std-2                  	 1000000	     11447 ns/op	 106.49 MB/s	    3970 B/op	      53 allocs/op
+BenchmarkDecodeJsonGeneric_Gojson-2               	 1000000	      4939 ns/op	 246.80 MB/s	    3579 B/op	      52 allocs/op
+BenchmarkDecodeJsonGeneric_Sonic-2                	 1000000	      3066 ns/op	 397.58 MB/s	    3831 B/op	      23 allocs/op
+BenchmarkDecodeJsonGeneric_Sonic_String-2         	 1000000	      2681 ns/op	 454.65 MB/s	    2541 B/op	      22 allocs/op
+BenchmarkDecodeJsonBinding_Std-2                  	 1000000	     10324 ns/op	 118.07 MB/s	    2256 B/op	      21 allocs/op
+BenchmarkDecodeJsonBinding_Gojson-2               	 1000000	      1759 ns/op	 693.03 MB/s	    1488 B/op	       2 allocs/op
+BenchmarkDecodeJsonBinding_Sonic-2                	 1000000	      1283 ns/op	 949.93 MB/s	    2236 B/op	       4 allocs/op
+BenchmarkDecodeJsonBinding_Sonic_String-2         	 1000000	       971.1 ns/op	1255.27 MB/s	     948 B/op	       3 allocs/op
+BenchmarkDecodeJsonBinding_Purge_Std-2            	 1000000	      8768 ns/op	 139.03 MB/s	    1776 B/op	      12 allocs/op
+BenchmarkDecodeJsonBinding_Purge_Gojson-2         	 1000000	      1526 ns/op	 798.58 MB/s	    1344 B/op	       2 allocs/op
+BenchmarkDecodeJsonBinding_Purge_Sonic-2          	 1000000	      1552 ns/op	 785.47 MB/s	    2092 B/op	       4 allocs/op
+BenchmarkDecodeJsonBinding_Purge_Sonic_String-2   	 1000000	      1248 ns/op	 976.86 MB/s	     803 B/op	       3 allocs/op
+PASS
+ok  	github.com/elastic/beats/v7/libbeat/processors/actions	49.616s
+*/
+
+const (
+	message = `{"contents":{"content":"2023-09-27 20:40:11.012 customer-platform customer-platform-879cf6667-6tdcn INFO [xxl-rpc, EmbedServer bizThreadPool-492992465] c.x.job.core.executor.XxlJobExecutor registJobThread [181] [02f85dae36f2a95e4e032b2e2a6a8e51] [0f260428d86e8068] >>>>>>>>>>> xxl-job regist JobThread success, jobId:1164, handler:com.xxl.job.core.handler.impl.MethodJobHandler@2fb16ac6[class com.jiduauto.customer.job.CaseDescriptionRefreshJob$$EnhancerBySpringCGLIB$$d51d54e6#refreshCaseDescription] monilog_detail_log[mybatis]-FeedbackCaseMapper.selectList|true|8ms|SUCCESS|成功 input:[\"SELECT * FROM feedback_case WHERE (create_time BETWEEN ? AND ? AND case_description = ?)\"], output:[]"},"tags":{"container.image.name":"docker.jidudev.com/tech/customer-platform:d.d6cc3.5b.1637","container.ip":"10.80.224.46","container.name":"customer-platform","host.ip":"10.80.241.28","host.name":"log-collector-kjvsm","k8s.namespace.name":"develop","k8s.node.ip":"10.80.11.6","k8s.node.name":"10.80.11.6","k8s.pod.name":"customer-platform-879cf6667-6tdcn","k8s.pod.uid":"9f821ab7-bebb-4ea6-8ff7-f813c8293de3","log.file.path":"/app/logs/customer-platform/serverlog.customer-platform-879cf6667-6tdcn.log"},"time":1695818411}`
+)
+
+type LogMessage struct {
+	Contents struct {
+		Content string `json:"content"`
+	} `json:"contents"`
+	Tags struct {
+		ImageName     string `json:"container.image.name"`
+		ContainerIp   string `json:"container.ip"`
+		ContainerName string `json:"container.name"`
+		HostIp        string `json:"host.ip"`
+		HostName      string `json:"host.name"`
+		Namespace     string `json:"k8s.namespace.name"`
+		NodeIp        string `json:"k8s.node.ip"`
+		NodeName      string `json:"k8s.node.name"`
+		PodName       string `json:"k8s.pod.name"`
+		Uid           string `json:"k8s.pod.uid"`
+		Filepath      string `json:"log.file.path"`
+	} `json:"tags"`
+	Time int64 `json:"time"`
+}
+
+type LogMessagePurge struct {
+	Contents struct {
+		Content string `json:"content"`
+	} `json:"contents"`
+	Tags struct {
+		ContainerIp string `json:"container.ip"`
+		Namespace   string `json:"k8s.namespace.name"`
+		NodeIp      string `json:"k8s.node.ip"`
+	} `json:"tags"`
+}
+
+func BenchmarkDecodeJsonGeneric_Std(b *testing.B) {
+	var w interface{}
+	m := []byte(message)
+	_ = stdjson.Unmarshal(m, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v interface{}
+		_ = stdjson.Unmarshal(m, &v)
+	}
+}
+
+func BenchmarkDecodeJsonGeneric_Gojson(b *testing.B) {
+	var w interface{}
+	m := []byte(message)
+	_ = json.Unmarshal(m, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v interface{}
+		_ = json.Unmarshal(m, &v)
+	}
+}
+
+func BenchmarkDecodeJsonGeneric_Sonic(b *testing.B) {
+	var w interface{}
+	m := []byte(message)
+	_ = sonic.Unmarshal(m, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v interface{}
+		_ = sonic.Unmarshal(m, &v)
+	}
+}
+
+func BenchmarkDecodeJsonGeneric_Sonic_String(b *testing.B) {
+	var w interface{}
+	_ = sonic.UnmarshalString(message, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v interface{}
+		_ = sonic.UnmarshalString(message, &v)
+	}
+}
+
+func BenchmarkDecodeJsonBinding_Std(b *testing.B) {
+	var w LogMessage
+	m := []byte(message)
+	_ = stdjson.Unmarshal(m, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v LogMessage
+		_ = stdjson.Unmarshal(m, &v)
+	}
+}
+
+func BenchmarkDecodeJsonBinding_Gojson(b *testing.B) {
+	var w LogMessage
+	m := []byte(message)
+	_ = json.Unmarshal(m, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v LogMessage
+		_ = json.Unmarshal(m, &v)
+	}
+}
+
+func BenchmarkDecodeJsonBinding_Sonic(b *testing.B) {
+	var w LogMessage
+	m := []byte(message)
+	_ = sonic.Unmarshal(m, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v LogMessage
+		_ = sonic.Unmarshal(m, &v)
+	}
+}
+
+func BenchmarkDecodeJsonBinding_Sonic_String(b *testing.B) {
+	var w LogMessage
+	_ = sonic.UnmarshalString(message, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v LogMessage
+		_ = sonic.UnmarshalString(message, &v)
+	}
+}
+
+func BenchmarkDecodeJsonBinding_Purge_Std(b *testing.B) {
+	var w LogMessagePurge
+	m := []byte(message)
+	_ = stdjson.Unmarshal(m, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v LogMessagePurge
+		_ = stdjson.Unmarshal(m, &v)
+	}
+}
+
+func BenchmarkDecodeJsonBinding_Purge_Gojson(b *testing.B) {
+	var w LogMessagePurge
+	m := []byte(message)
+	_ = json.Unmarshal(m, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v LogMessagePurge
+		_ = json.Unmarshal(m, &v)
+	}
+}
+
+func BenchmarkDecodeJsonBinding_Purge_Sonic(b *testing.B) {
+	var w LogMessagePurge
+	m := []byte(message)
+	_ = sonic.Unmarshal(m, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v LogMessagePurge
+		_ = sonic.Unmarshal(m, &v)
+	}
+}
+
+func BenchmarkDecodeJsonBinding_Purge_Sonic_String(b *testing.B) {
+	var w LogMessagePurge
+	_ = sonic.UnmarshalString(message, &w)
+	b.SetBytes(int64(len(message)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var v LogMessagePurge
+		_ = sonic.UnmarshalString(message, &v)
+	}
+}
+
+// gjson 无法获取字段名中含有点号(.)的值
+// func BenchmarkDecodeJson_gjson(b *testing.B) {
+// 	const expectedContainerIp = "10.80.224.46"
+//
+// 	_ = gjson.Get(message, "contents.content").String()
+// 	containerIp := gjson.Get(message, "tags.container.ip").String()
+// 	if containerIp != expectedContainerIp {
+// 		b.Fatalf("json field `tags.container.ip` expected: %s but got: %s", expectedContainerIp, containerIp)
+// 	}
+// 	_ = gjson.Get(message, "tags.k8s.node.ip").String()
+// 	_ = gjson.Get(message, "tags.k8s.namespace.name").String()
+// 	b.SetBytes(int64(len(message)))
+// 	b.ResetTimer()
+// 	for i := 0; i < b.N; i++ {
+// 		_ = gjson.Get(message, "contents.content").String()
+// 		_ = gjson.Get(message, "tags.container.ip").String()
+// 		_ = gjson.Get(message, "tags.k8s.node.ip").String()
+// 		_ = gjson.Get(message, "tags.k8s.namespace.name").String()
+// 	}
+// }

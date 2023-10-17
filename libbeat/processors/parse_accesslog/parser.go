@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
-	"github.com/pkg/errors"
 
 	"github.com/elastic/beats/v7/libbeat/beat"
 	"github.com/elastic/beats/v7/libbeat/common"
@@ -35,7 +34,7 @@ import (
 const (
 	procName = "parse_accesslog"
 	logName  = "processor." + procName
-	spliter  = `\u001f `
+	spliter  = ` `
 )
 
 func init() {
@@ -67,25 +66,36 @@ func NewParseAccesslog(cfg *common.Config) (processors.Processor, error) {
 
 // Run parse log
 func (p *parseAccesslog) Run(event *beat.Event) (*beat.Event, error) {
+	// ignore panic
+	defer func() {
+		if err := recover(); err != nil {
+			p.logger.Warnf("accesslog parse panic: %v", err)
+			return
+		}
+	}()
 	/* filter */
 	// event filter
-	//processor, err := event.GetValue(processors.FieldProcessor)
-	//if err != nil {
-	//	return event, nil
-	//}
-	//if processor != procName {
-	//	return event, nil
-	//}
-
-	message, err := event.GetValue(p.config.Field)
+	processor, err := event.GetValue(processors.FieldProcessor)
 	if err != nil {
-		if p.config.IgnoreMissing && errors.Cause(err) == common.ErrKeyNotFound {
-			return event, nil
-		}
-		return nil, makeErrMissingField(p.config.Field, err)
+		return event, nil
 	}
-	msg := message.(string)
-	//log filter
+	if processor != procName {
+		return event, nil
+	}
+
+	collector, err := event.GetValue(processors.FieldCollector)
+	if err != nil {
+		return nil, err
+	}
+	err = processors.LogPreprocessing(event, processors.LogFormat(collector.(string)))
+	// test
+	// err := processors.LogPreprocessing(event, processors.LogFormat("ilogtail"))
+	if err != nil {
+		return event, err
+	}
+
+	msg := event.Fields["message"].(string)
+	// log filter
 	tagId := strings.Index(msg, util.MsgTag)
 	if strings.Index(msg, "request=/misc/ping") != -1 && strings.Index(msg, "request=/actuator/health") != -1 && tagId != -1 {
 		return nil, nil
@@ -135,7 +145,7 @@ func (p *parseAccesslog) Run(event *beat.Event) (*beat.Event, error) {
 	if startId == -1 {
 		return event, nil
 	}
-	tailMsg := msg[startId+7:]
+	tailMsg := msg[startId+2:]
 	kvs := strings.Split(tailMsg, spliter)
 	for _, kv := range kvs {
 		idx := strings.Index(kv, "=")

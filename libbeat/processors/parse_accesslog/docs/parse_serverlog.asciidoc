@@ -1,36 +1,17 @@
-[[parse_filebeat_log]]
-=== Generate a parse_filebeat_log of an event
+[[parse_accesslog]]
+=== Generate a parse_accesslog of an event
 
 ++++
-<titleabbrev>parse_filebeat_log</titleabbrev>
+<titleabbrev>parse_accesslog</titleabbrev>
 ++++
 
-The `parse_filebeat_log` processor parse filebeat program's log
-the expected log format is: datetime	LEVEL	hostname	message
 
 [source,yaml]
 -----------------------------------------------------
 processors:
-  - decode_json_fields:
-      fields: ["message"]
-      target: ""
-  - rename:
-      fields:
-        - from: "tags.container.ip"
-          to: "podip"
-        - from: "tags.k8s.node.ip"
-          to: "nodeip"
-        - from: "tags.k8s.namespace.name"
-          to: "namespace"
+  - parse_accesslog:
+      field: "message"
       ignore_missing: true
-      fail_on_error: false
-  - drop_fields:
-      fields: ["time", "input", "tags"]
-      ignore_missing: true
-  - parse_serverlog:
-      field: "contents.content"
-      ignore_missing: true
-      ignore_malformed: true
       time_field: "@timestamp"
       timezone: 'Asia/Shanghai'
       layouts:

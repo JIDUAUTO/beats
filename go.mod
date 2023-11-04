@@ -36,7 +36,7 @@ require (
 	github.com/awslabs/kinesis-aggregation/go v0.0.0-20200810181507-d352038274c0
 	github.com/blakesmith/ar v0.0.0-20150311145944-8bd4349a67f2
 	github.com/bsm/sarama-cluster v2.1.14-0.20180625083203-7e67d87a6b3f+incompatible
-	github.com/bytedance/sonic v1.10.0
+	github.com/bytedance/sonic v1.10.2
 	github.com/cavaliercoder/badio v0.0.0-20160213150051-ce5280129e9e // indirect
 	github.com/cavaliercoder/go-rpm v0.0.0-20190131055624-7a9c54e3d83e
 	github.com/cespare/xxhash/v2 v2.1.2

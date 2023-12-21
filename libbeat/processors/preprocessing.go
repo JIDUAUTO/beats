@@ -1,6 +1,8 @@
 package processors
 
 import (
+	"path"
+
 	"github.com/bytedance/sonic"
 
 	"github.com/elastic/beats/v7/libbeat/beat"
@@ -10,6 +12,12 @@ type LogFormat string
 
 const (
 	LogFormatIlogtail LogFormat = "ilogtail"
+	LogFormatFilebeat LogFormat = "filebeat"
+)
+
+const (
+	// LogFilename 日志文件名
+	LogFilename = "file"
 )
 
 type IlogtailMessage struct {
@@ -32,6 +40,25 @@ type IlogtailMessage struct {
 	Time int `json:"time"`
 }
 
+type FilebeatMessage struct {
+	Timestamp string `json:"@timestamp"`
+	Metadata  struct {
+		Beat    string `json:"beat"`
+		Type    string `json:"type"`
+		Version string `json:"version"`
+	} `json:"@metadata"`
+	Log struct {
+		File struct {
+			Path string `json:"path"`
+		} `json:"file"`
+		Offset int `json:"offset"`
+	} `json:"log"`
+	Message string `json:"message"`
+	Fields  struct {
+		Servicetype string `json:"servicetype"`
+	} `json:"fields"`
+}
+
 func LogPreprocessing(event *beat.Event, format LogFormat) error {
 	message := event.Fields["message"].(string)
 
@@ -49,6 +76,17 @@ func LogPreprocessing(event *beat.Event, format LogFormat) error {
 		event.Fields["podip"] = msg.Tags.ContainerIp
 
 		event.Fields["message"] = msg.Contents.Content
+
+		delete(event.Fields, "input")
+	case LogFormatFilebeat:
+		var msg FilebeatMessage
+		err = sonic.UnmarshalString(message, &msg)
+		if err != nil {
+			return err
+		}
+		event.Fields[LogFilename] = path.Base(msg.Log.File.Path)
+
+		event.Fields["message"] = msg.Message
 
 		delete(event.Fields, "input")
 	default:

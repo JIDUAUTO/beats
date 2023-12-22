@@ -42,6 +42,6 @@ func defaultConfig() Config {
 		TimeField:     "@timestamp",
 		IgnoreMissing: false,
 		Timezone:      cfgtype.MustNewTimezone("Asia/Shanghai"),
-		AllowOld:      "1d",
+		AllowOld:      "24h",
 	}
 }

@@ -53,11 +53,15 @@ func New(cfg *common.Config) (processors.Processor, error) {
 		return nil, makeErrConfigUnpack(err)
 	}
 
-	logger := logp.NewLogger(logName)
+	duration, err := time.ParseDuration(config.AllowOld)
+	if err != nil {
+		return nil, makeErrCompute(errors.New("duration configuration error"))
+	}
+	config.AllowOldDuration = duration
 
 	p := &parseServerlog{
 		config: config,
-		logger: logger,
+		logger: logp.NewLogger(logName),
 	}
 
 	return p, nil
@@ -130,6 +134,10 @@ func (p *parseServerlog) Run(event *beat.Event) (*beat.Event, error) {
 	}
 	mt := time.UnixMilli(int64(lastModifiedAt)).In(time.Local)
 	logtime = logtime.AddDate(mt.Year(), 0, 0)
+	if time.Now().Sub(logtime) > p.config.AllowOldDuration || logtime.Sub(time.Now()) > p.config.AllowOldDuration {
+		// 过滤日期差异很大的数据
+		return nil, nil
+	}
 	event.Fields[p.config.TimeField] = logtime
 
 	delete(event.Fields, "fields")

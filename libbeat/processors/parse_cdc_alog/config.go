@@ -18,15 +18,22 @@
 package parse_cdc_alog
 
 import (
+	"time"
+
 	"github.com/elastic/beats/v7/libbeat/common/cfgtype"
 )
 
 // Config for parse_parse_vehicle_trace2trace processor.
 type Config struct {
-	Field         string            `config:"field"`          // log message field
-	IgnoreMissing bool              `config:"ignore_missing"` // Skip field when From field is missing.
-	TimeField     string            `config:"time_field"`     // specified the time field
-	Timezone      *cfgtype.Timezone `config:"timezone"`
+	Field         string            `config:"field"`                         // log message field
+	IgnoreMissing bool              `config:"ignore_missing"`                // Skip field when From field is missing.
+	TimeField     string            `config:"time_field"`                    // specified the time field
+	Timezone      *cfgtype.Timezone `config:"timezone"`                      // specify timezone
+	AllowOld      string            `config:"allow_old" validate:"required"` // allow old data, duration in golang
+	Layouts       []string          `configs:"layouts" validate:"required"`
+
+	// cache field
+	AllowOldDuration time.Duration
 }
 
 func defaultConfig() Config {
@@ -35,5 +42,6 @@ func defaultConfig() Config {
 		TimeField:     "@timestamp",
 		IgnoreMissing: false,
 		Timezone:      cfgtype.MustNewTimezone("Asia/Shanghai"),
+		AllowOld:      "1d",
 	}
 }

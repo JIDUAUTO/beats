@@ -30,7 +30,6 @@ type Config struct {
 	TimeField     string            `config:"time_field"`                    // specified the time field
 	Timezone      *cfgtype.Timezone `config:"timezone"`                      // specify timezone
 	AllowOld      string            `config:"allow_old" validate:"required"` // allow old data, duration in golang
-	Layouts       []string          `configs:"layouts" validate:"required"`
 
 	// cache field
 	AllowOldDuration time.Duration

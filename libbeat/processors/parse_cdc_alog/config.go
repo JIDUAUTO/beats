@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package parse_serverlog
+package parse_cdc_alog
 
 import (
 	"github.com/elastic/beats/v7/libbeat/common/cfgtype"

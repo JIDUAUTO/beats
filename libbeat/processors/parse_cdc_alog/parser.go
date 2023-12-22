@@ -103,7 +103,7 @@ func (p *parseServerlog) Run(event *beat.Event) (*beat.Event, error) {
 	// 日志时间
 	logtime, err := time.ParseInLocation(dateLayout, msg[:len(dateLayout)], time.Local)
 	if err != nil {
-		return nil, makeErrCompute(errors.New("invalid log time"))
+		return nil, makeErrCompute(errors.New("invalid log time: " + msg[:len(dateLayout)]))
 	}
 
 	// 解析文件名称中的信息

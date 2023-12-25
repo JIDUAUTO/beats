@@ -36,6 +36,11 @@ const (
 	logName  = "processor." + procName
 )
 
+const (
+	UsbMounted   = "state=MOUNTED"
+	UsbUnmounted = "state=EJECTING"
+)
+
 func init() {
 	processors.RegisterPlugin(procName, New)
 	// jsprocessor.RegisterPlugin(strings.Title(procName), New)
@@ -141,6 +146,13 @@ func (p *parseServerlog) Run(event *beat.Event) (*beat.Event, error) {
 	event.Fields[p.config.TimeField] = logtime
 
 	delete(event.Fields, "fields")
+
+	// 业务属性
+	if strings.Index(msg, UsbMounted) > 0 {
+		event.Fields["usb_mounted"] = true
+	} else if strings.Index(msg, UsbUnmounted) > 0 {
+		event.Fields["usb_unmounted"] = true
+	}
 
 	return event, nil
 }

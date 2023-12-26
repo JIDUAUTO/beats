@@ -149,9 +149,9 @@ func (p *parseServerlog) Run(event *beat.Event) (*beat.Event, error) {
 
 	// 业务属性
 	if strings.Index(msg, UsbMounted) > 0 {
-		event.Fields["usb_mounted"] = true
+		event.Fields["usb_mounted"] = 1
 	} else if strings.Index(msg, UsbUnmounted) > 0 {
-		event.Fields["usb_unmounted"] = true
+		event.Fields["usb_mounted"] = 2
 	}
 
 	return event, nil

@@ -37,8 +37,8 @@ const (
 )
 
 const (
-	UsbMounted   = "state=MOUNTED"
-	UsbUnmounted = "state=EJECTING"
+	UsbMounted   = "UsbDeviceService:     state=MOUNTED"
+	UsbUnmounted = "UsbDeviceService:     state=EJECTING"
 )
 
 func init() {
@@ -148,11 +148,11 @@ func (p *parseServerlog) Run(event *beat.Event) (*beat.Event, error) {
 	delete(event.Fields, "fields")
 
 	// 业务属性
-	if strings.Index(msg, UsbMounted) > 0 {
-		event.Fields["usb_mounted"] = 1
-	} else if strings.Index(msg, UsbUnmounted) > 0 {
-		event.Fields["usb_mounted"] = 2
-	}
+	// if strings.Index(msg, UsbMounted) > 0 {
+	// 	event.Fields["usb_mounted"] = 1
+	// } else if strings.Index(msg, UsbUnmounted) > 0 {
+	// 	event.Fields["usb_mounted"] = 2
+	// }
 
 	return event, nil
 }

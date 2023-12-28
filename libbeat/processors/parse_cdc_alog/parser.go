@@ -143,7 +143,10 @@ func (p *parseServerlog) Run(event *beat.Event) (*beat.Event, error) {
 		// 过滤日期差异很大的数据
 		return nil, nil
 	}
-	event.Fields[p.config.TimeField] = logtime
+	_, err = event.PutValue(p.config.TimeField, logtime)
+	if err != nil {
+		return nil, makeErrCompute(err)
+	}
 
 	delete(event.Fields, "fields")
 

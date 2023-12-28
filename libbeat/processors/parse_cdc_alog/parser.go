@@ -148,8 +148,6 @@ func (p *parseServerlog) Run(event *beat.Event) (*beat.Event, error) {
 		return nil, makeErrCompute(err)
 	}
 
-	delete(event.Fields, "fields")
-
 	// 业务属性
 	// if strings.Index(msg, UsbMounted) > 0 {
 	// 	event.Fields["usb_mounted"] = 1

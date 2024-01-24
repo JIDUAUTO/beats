@@ -118,7 +118,8 @@ func (p *parseServerlog) Run(event *beat.Event) (*beat.Event, error) {
 	}
 
 	// filter benchmark log
-	if strings.HasPrefix(util.Trim(items[9]), util.BenchmarkPrefix) {
+	if strings.HasPrefix(util.Trim(items[9]), util.BenchmarkPrefix) &&
+		!strings.HasPrefix(util.Trim(items[9]), util.BenchmarkExcludePrefix) {
 		// Drop event<benchmark log>
 		return nil, nil
 	}

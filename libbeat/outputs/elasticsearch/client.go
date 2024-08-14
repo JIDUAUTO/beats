@@ -430,7 +430,7 @@ func (client *Client) bulkCollectPublishFails(result eslegclient.BulkResult, dat
 			}
 		}
 
-		client.log.Debugf("Bulk item insert failed (i=%v, status=%v): %s", i, status, msg)
+		client.log.Warnf("Bulk item insert failed (i=%v, status=%v): %s", i, status, msg)
 		stats.fails++
 		failed = append(failed, data[i])
 	}

@@ -142,9 +142,10 @@ func (input *kafkaInput) Run(ctx input.Context, pipeline beat.Pipeline) error {
 		8*input.config.ConnectBackoff,
 	)
 
+	var consumerGroup sarama.ConsumerGroup
 	for goContext.Err() == nil {
 		// Connect to Kafka with a new consumer group.
-		consumerGroup, err := sarama.NewConsumerGroup(
+		consumerGroup, err = sarama.NewConsumerGroup(
 			input.config.Hosts,
 			input.config.GroupID,
 			input.saramaConfig,
@@ -154,15 +155,33 @@ func (input *kafkaInput) Run(ctx input.Context, pipeline beat.Pipeline) error {
 			connectDelay.Wait()
 			continue
 		}
+
 		// We've successfully connected, reset the backoff timer.
 		connectDelay.Reset()
+		break
+	}
 
+	input.saramaWaitGroup.Add(1)
+	defer func() {
+		consumerGroup.Close()
+		input.saramaWaitGroup.Done()
+	}()
+
+	handler := &groupHandler{
+		version: input.config.Version,
+		client:  client,
+		parsers: input.config.Parsers,
+		// expandEventListFromField will be assigned the configuration option expand_event_list_from_field
+		expandEventListFromField: input.config.ExpandEventListFromField,
+		log:                      log,
+	}
+	for goContext.Err() == nil {
 		// We have a connected consumer group now, try to start the main event
 		// loop by calling Consume (which starts an asynchronous consumer).
 		// In an ideal run, this function never returns until shutdown; if it
 		// does, it means the errors have been logged and the consumer group
 		// has been closed, so we try creating a new one in the next iteration.
-		input.runConsumerGroup(log, client, goContext, consumerGroup)
+		input.runConsumerGroup(log, goContext, consumerGroup, handler)
 	}
 
 	if ctx.Cancelation.Err() == context.Canceled {
@@ -189,21 +208,8 @@ func (input *kafkaInput) Wait() {
 	input.saramaWaitGroup.Wait()
 }
 
-func (input *kafkaInput) runConsumerGroup(log *logp.Logger, client beat.Client, context context.Context, consumerGroup sarama.ConsumerGroup) {
-	handler := &groupHandler{
-		version: input.config.Version,
-		client:  client,
-		parsers: input.config.Parsers,
-		// expandEventListFromField will be assigned the configuration option expand_event_list_from_field
-		expandEventListFromField: input.config.ExpandEventListFromField,
-		log:                      log,
-	}
-
-	input.saramaWaitGroup.Add(1)
-	defer func() {
-		consumerGroup.Close()
-		input.saramaWaitGroup.Done()
-	}()
+func (input *kafkaInput) runConsumerGroup(log *logp.Logger, context context.Context,
+	consumerGroup sarama.ConsumerGroup, handler sarama.ConsumerGroupHandler) {
 
 	// Listen asynchronously to any errors during the consume process
 	go func() {

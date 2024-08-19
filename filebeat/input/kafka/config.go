@@ -231,6 +231,7 @@ func newSaramaConfig(config kafkaInputConfig) (*sarama.Config, error) {
 		"filebeat.inputs.kafka",
 		adapter.Rename("incoming-byte-rate", "bytes_read"),
 		adapter.Rename("outgoing-byte-rate", "bytes_write"),
+		adapter.Rename("join-group-request", "join_group"),
 		adapter.GoMetricsNilify,
 	)
 

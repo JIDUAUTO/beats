@@ -303,7 +303,7 @@ require (
 replace (
 	github.com/Azure/azure-sdk-for-go => github.com/elastic/azure-sdk-for-go v59.0.0-elastic-1+incompatible
 	github.com/Microsoft/go-winio => github.com/bi-zone/go-winio v0.4.15
-	github.com/Shopify/sarama => github.com/JIDUAUTO/sarama v1.19.2
+	github.com/Shopify/sarama => github.com/JIDUAUTO/sarama v1.19.3
 	github.com/apoydence/eachers => github.com/poy/eachers v0.0.0-20181020210610-23942921fe77 //indirect, see https://github.com/elastic/beats/pull/29780 for details.
 	github.com/cucumber/godog => github.com/cucumber/godog v0.8.1
 	github.com/docker/docker => github.com/docker/engine v0.0.0-20191113042239-ea84732a7725

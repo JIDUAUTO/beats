@@ -108,7 +108,7 @@ func (input *kafkaInput) Test(ctx input.TestContext) error {
 }
 
 func (input *kafkaInput) Run(ctx input.Context, pipeline beat.Pipeline) error {
-	log := ctx.Logger.Named("kafka input").With("hosts", input.config.Hosts)
+	log := ctx.Logger.Named("kafka input")
 
 	client, err := pipeline.ConnectWith(beat.ClientConfig{
 		ACKHandler: acker.ConnectionOnly(
@@ -220,7 +220,7 @@ func (input *kafkaInput) runConsumerGroup(log *logp.Logger, context context.Cont
 
 	err := consumerGroup.Consume(context, input.config.Topics, handler)
 	if err != nil {
-		log.Errorw("Kafka consume error", "error", err, "topics", input.config.Topics)
+		log.Errorw("Kafka consume error", "error", err, "topics", input.config.Topics, "groupId", input.config.GroupID)
 	}
 }
 

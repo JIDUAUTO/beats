@@ -39,6 +39,16 @@ import (
 	"github.com/elastic/beats/v7/libbeat/outputs/codec"
 )
 
+var (
+	goMetricRegistry = adapter.GetGoMetrics(
+		monitoring.Default,
+		"libbeat.outputs.kafka",
+		adapter.Rename("incoming-byte-rate", "bytes_read"),
+		adapter.Rename("outgoing-byte-rate", "bytes_write"),
+		adapter.GoMetricsNilify,
+	)
+)
+
 type backoffConfig struct {
 	Init time.Duration `config:"init"`
 	Max  time.Duration `config:"max"`
@@ -275,13 +285,7 @@ func newSaramaConfig(log *logp.Logger, config *kafkaConfig) (*sarama.Config, err
 	k.Version = version
 
 	k.Producer.Partitioner = partitioner
-	k.MetricRegistry = adapter.GetGoMetrics(
-		monitoring.Default,
-		"libbeat.outputs.kafka",
-		adapter.Rename("incoming-byte-rate", "bytes_read"),
-		adapter.Rename("outgoing-byte-rate", "bytes_write"),
-		adapter.GoMetricsNilify,
-	)
+	k.MetricRegistry = goMetricRegistry
 
 	if err := k.Validate(); err != nil {
 		log.Errorf("Invalid kafka configuration: %+v", err)

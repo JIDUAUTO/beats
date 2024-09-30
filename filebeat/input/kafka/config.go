@@ -33,6 +33,17 @@ import (
 	"github.com/elastic/beats/v7/libbeat/reader/parser"
 )
 
+var (
+	goMetricRegistry = adapter.GetGoMetrics(
+		monitoring.Default,
+		"filebeat.inputs.kafka",
+		adapter.Rename("incoming-byte-rate", "bytes_read"),
+		adapter.Rename("outgoing-byte-rate", "bytes_write"),
+		adapter.Rename("join-group-request", "join_group"),
+		adapter.GoMetricsNilify,
+	)
+)
+
 type kafkaInputConfig struct {
 	// Kafka hosts with port, e.g. "localhost:9092"
 	Hosts                    []string          `config:"hosts" validate:"required"`
@@ -226,14 +237,7 @@ func newSaramaConfig(config kafkaInputConfig) (*sarama.Config, error) {
 	// configure client ID
 	k.ClientID = config.ClientID
 
-	k.MetricRegistry = adapter.GetGoMetrics(
-		monitoring.Default,
-		"filebeat.inputs.kafka",
-		adapter.Rename("incoming-byte-rate", "kbytes_read"),
-		adapter.Rename("outgoing-byte-rate", "kbytes_write"),
-		adapter.Rename("join-group-request", "join_group"),
-		adapter.GoMetricsNilify,
-	)
+	k.MetricRegistry = goMetricRegistry
 
 	if err := k.Validate(); err != nil {
 		return nil, err

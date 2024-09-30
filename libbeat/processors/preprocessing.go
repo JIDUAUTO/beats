@@ -76,6 +76,7 @@ func LogPreprocessing(event *beat.Event, format LogFormat) error {
 		event.Fields["podip"] = msg.Tags.ContainerIp
 
 		event.Fields["message"] = msg.Contents.Content
+		event.Fields["filebeat_size"] = len(msg.Contents.Content) // metric
 
 		delete(event.Fields, "input")
 	case LogFormatFilebeat:
